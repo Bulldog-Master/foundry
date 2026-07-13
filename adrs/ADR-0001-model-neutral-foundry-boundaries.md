@@ -82,7 +82,7 @@ Execution — the ability to actually ship a metadata-minimizing, cryptographica
 
 - Foundry 0 baseline: `CONSTITUTION.md`, `VERSION.md`, `README.md`, `foundry-templates/`, `product-charters/daang-remote.md`, merged via PR #1 and PR #2.
 - Direct founder experience during Foundry 0 that (a) model swaps in practice required prompt and calibration changes to reach comparable output quality, and (b) sole-author review missed issues that a second reviewer would have caught.
-- The Constitution's Principle 6 (replaceable intelligence) and Principle 7 (human judgment as final authority), which this ADR operationalizes rather than amends.
+- The Constitution's Principle 2 (Evidence), Principle 6 (Intelligence as replaceable), and Principle 7 (Human judgment), which this ADR amended in PR #3 to establish the Foundry 1 operating model.
 
 Evidence for the specific calibration of each gate — thresholds, exemplars, false-positive/negative behaviour — will accumulate through use and is expected to drive later Operational ADRs.
 
