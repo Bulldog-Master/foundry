@@ -39,7 +39,15 @@ Every substantive change to a product or to Foundry itself is evaluated against 
 
 ### Builder / evaluator separation
 
-The producer of a change **cannot be its sole evaluator**. Each gate must be recorded by an evaluator who is distinguishable from the author of the change. During Foundry 1, "distinguishable" may be satisfied by a different human, a different intelligence operating under a distinct role, or the founder acting in an explicit reviewer capacity separate from authorship — but the roles must be named in the record.
+The producer of a change **cannot be its sole evaluator**. During Foundry 1, separation may be satisfied by:
+
+- a different human reviewer;
+- a separate AI model or intelligence operating in an evaluator role;
+- a separate evaluation session that did not produce the change and is given the change packet, evidence, and applicable rubric;
+- deterministic verification where the gate criterion can be evaluated mechanically;
+- or an explicit combination of these.
+
+The founder remains the final approval authority, but founder approval does not by itself substitute for independent gate evaluation when the founder produced the change. Naming the same person under two role labels on the same change does not satisfy this requirement.
 
 ### Failed gates block by default
 
@@ -52,9 +60,15 @@ The producer of a change **cannot be its sole evaluator**. Each gate must be rec
 
 Engineering identity (who built it, with what tools, under what account, against which model) and product identity (what the product exposes to its users and to the world) are separate domains. Their conflation is a category of privacy failure. The Privacy and Metadata Gate owns detection of leakage across this seam.
 
-### Gates are themselves measured
+### Gate authority and gate operation
 
-Gates are operational instruments, not doctrine. Each gate must generate evidence about its own value: what it caught, what it missed, and what it cost. Gates may be recalibrated, narrowed, or demoted through subsequent ADRs when the evidence supports it. A gate that never fires and never catches anything is a candidate for demotion; a gate that fires often but never catches anything is a candidate for recalibration.
+The four-gate structure, the requirement that every applicable change receive all four outcomes, builder/evaluator separation, and failed-gate blocking are doctrinal commitments of Foundry 1.
+
+The operation of each gate is evidence-dependent. Its rubric details, evaluator, prompts, tools, thresholds, calibration, cost, false-positive behaviour, false-negative behaviour, and continued mandatory status must be measured through real work.
+
+A gate may be recalibrated, narrowed, or demoted when evidence shows that it is inaccurate, inconsistent, repeatedly bypassed, repeatedly overridden, missing defects within scope, or creating disproportionate cost.
+
+A gate must not retain mandatory authority merely because it appeared in the original design.
 
 ### Proving ground
 

@@ -42,7 +42,7 @@ Check all that apply:
 
 ## Gate records
 
-Each gate must record one outcome: **Pass**, **Fail**, **Pass with conditions**, or **N/A with a specific reason**. The evaluator must be distinguishable from the author of this PR; name the role being exercised (author, reviewer, founder-as-reviewer).
+Each gate must record one outcome: **Pass**, **Fail**, **Pass with conditions**, or **N/A with a specific reason**. The evaluator must be an **independent source** — a different human reviewer, a separate AI model or intelligence in an evaluator role, a separate evaluation session that did not produce the change, deterministic mechanical verification, or an explicit combination of these. Name the actual reviewing source (for example: "Independent AI review session, followed by founder approval"). **Naming the same person under two role labels on the same change does not satisfy independence.** The founder remains the final approval authority; founder approval does not by itself substitute for independent gate evaluation when the founder produced the change.
 
 ### 1. Architecture Gate
 
@@ -111,6 +111,6 @@ Briefly: on this PR, did each gate earn its keep? Note any gate that fired witho
 
 - [ ] No files outside the declared scope of this PR.
 - [ ] AI-generated content received human review.
-- [ ] Author and evaluator roles are distinguishable in every gate record.
+- [ ] Each gate record names an independent evaluating source (not the same person under a second role label).
 - [ ] No doctrine change, lesson promotion, security exception, or failed-gate override occurred without explicit founder approval.
 - [ ] A human founder has approved this PR for merge.

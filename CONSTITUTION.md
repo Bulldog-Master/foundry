@@ -48,7 +48,7 @@ Any intelligence operating inside Foundry — human contractor, AI agent, tool, 
 
 Automated and AI-assisted work is welcome, but human judgment is the final authority. No doctrine change, lesson promotion, security exception, merge into a protected branch, **or override of a failed evaluation gate** occurs without explicit founder approval.
 
-**The producer of a change cannot be its sole evaluator.** Author and evaluator roles must be distinguishable in the record of any substantive change. The founder may act in either role but must name which role is being exercised in each record; acting as both simultaneously on the same change is not permitted for substantive work.
+**The producer of a change cannot be its sole evaluator.** Independent evaluation may be satisfied by a different human reviewer, a separate AI model or intelligence operating in an evaluator role, a separate evaluation session that did not produce the change and is given the change packet and applicable rubric, deterministic verification where the criterion can be evaluated mechanically, or an explicit combination of these. Naming the same person under two role labels on the same change does not satisfy this requirement. The founder remains the final approval authority, but founder approval does not by itself substitute for independent gate evaluation when the founder produced the change.
 
 ### 8. Simplicity
 
