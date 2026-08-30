@@ -5,6 +5,7 @@
 - **Ratifying authority:** Bulldog-Master, Founder
 - **Last amended:** 2026-07-13 (record: PR #3)
 - **Author(s):** Bulldog-Master (founder)
+- **Implementation repository:** https://github.com/Bulldog-Master/daang-remote
 
 ## Why this product exists
 
