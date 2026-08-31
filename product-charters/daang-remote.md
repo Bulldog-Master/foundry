@@ -3,7 +3,7 @@
 - **Status:** Ratified
 - **Ratified:** 2026-07-12
 - **Ratifying authority:** Bulldog-Master, Founder
-- **Last amended:** 2026-08-30 (record: PR #5)
+- **Last amended:** 2026-08-31 (record: PR #5)
 - **Author(s):** Bulldog-Master (founder)
 - **Implementation repository:** https://github.com/Bulldog-Master/daang-remote
 
