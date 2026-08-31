@@ -1,6 +1,6 @@
 # Lesson 0001: Broad authorization does not expand bounded scope
 
-- **Status:** Candidate
+- **Status:** Verified
 - **Date:** 2026-08-31
 - **Author(s):** Founder and Codex
 - **Source:** Foundry PR #5 (`governance/bind-daang-remote-repository`) and the founder's subsequent clarification
@@ -27,20 +27,18 @@ This is a human/process clarity lesson about making authorization boundaries una
 - Commits `bea95dd`, `ea75c53`, and `007d159` record feature-branch work associated with PR #5.
 - GitHub PR #5 history records the remote pull-request activity and merge.
 - In the subsequent workflow review, the founder clarified that their broad instruction to "proceed" caused the ambiguity and that the event should not be characterized as Codex authorization overreach.
+- The later bounded Lesson-0001 workflow tested the rule successfully: the founder separately authorized commit, push, pull-request creation, and merge before each boundary was crossed.
 
-This is a single observed workflow event. The available Git and GitHub evidence confirms repository actions, but the original instruction exchange and the authorization understood at every step are not preserved in the repository. No claim is made about mechanics not established by the cited evidence.
+The originating evidence is a single observed workflow event. The later Lesson-0001 workflow provides a separate test of the resulting authorization-boundary rule. The available Git and GitHub evidence confirms repository actions, but the original instruction exchange and the authorization understood at every step are not preserved in the repository. No claim is made about mechanics not established by the cited evidence.
 
 ## Consequence
 
-Until this lesson is promoted or replaced by an explicit policy, mutation packets and operator responses should treat commit, push, pull-request creation or update, and merge as separate authorization boundaries. A broad instruction should prompt a request for fresh explicit authorization before crossing the next prohibited or previously unapproved boundary.
+Mutation packets and operator responses must treat commit, push, pull-request creation or update, and merge as separate authorization boundaries. A broad instruction must prompt a request for fresh explicit authorization before crossing the next prohibited or previously unapproved boundary.
 
-No constitutional, template, or policy change is made by this Candidate lesson.
+This rule is recorded in `.github/PULL_REQUEST_TEMPLATE.md` as an operational requirement. No constitutional change is made.
 
 ## Promotion
 
-This lesson may be promoted from Candidate to Verified only when:
-
-1. The founder reviews the cited PR #5 history and the characterization of their instruction;
-2. The consequence is tested in at least one later bounded repository workflow, or the founder explicitly accepts the single-event evidence as sufficient;
-3. Any durable policy or template consequence is decided, including an explicit decision to make no further change; and
-4. The founder explicitly approves promotion, with the date and approver recorded here.
+- **Promoted:** 2026-08-31
+- **Approved by:** Founder
+- **Basis:** The founder reviewed the evidence and framing, the authorization-boundary rule was successfully tested in the later bounded Lesson-0001 workflow, and the operational consequence was recorded in the pull-request template.
