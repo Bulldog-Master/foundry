@@ -1,6 +1,6 @@
 # ADR 0002: Evaluator independence as a property of accessible state and authority
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Type:** Doctrinal
 - **Expires:** Does not expire
 - **Date:** 2026-09-27

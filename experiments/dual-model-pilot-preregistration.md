@@ -29,7 +29,7 @@ This is **not** a test of which model is generally better, and no result from th
 
 - **Evaluators:** Codex and Claude, each operating as an independent evaluator against the frozen instrument. (Neither produces the candidate instrument itself in this pilot; "producer" is reserved for whoever built the underlying candidate set, which predates this pilot's design.)
 - **Adjudicator:** the instrument's existing sealed ground truth, and — for any case that reaches escalation — deterministic evidence (tests, CI, specification checks) where available. Model consensus is never an adjudication mechanism.
-- **Coordinator role:** any model used to help design or interpret this pilot (including across this and the companion coordination thread) is barred from also serving as a blinded evaluator inside the same pilot without passing the isolation and contamination checks below as if it were any other candidate evaluator.
+- **Coordinator role:** any model used to help design or interpret this pilot (including across this and the companion coordination thread) may serve as a blinded evaluator in the same pilot only if it has not been exposed to information intentionally excluded from the evaluator packet and its environment satisfies the same isolation and contamination requirements as any other candidate evaluator. Prior exposure to sealed truth, candidate-specific facts, or other deliberately withheld information disqualifies that actor from blinded evaluation for the same execution and cannot be cured by a later reset, fresh session, or isolation check.
 
 ## Evaluator isolation — general principle
 
