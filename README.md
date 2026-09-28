@@ -8,7 +8,7 @@ Foundry exists to make sure that every product built under it — starting with 
 
 ## Current generation: Foundry 1
 
-Foundry 1 keeps the Foundry 0 foundation (Constitution, templates, one authorized product, human approval before merge) and adds a ratified four-gate operating contract for every substantive change. The doctrinal basis is [`adrs/ADR-0001-model-neutral-foundry-boundaries.md`](./adrs/ADR-0001-model-neutral-foundry-boundaries.md). The current operating characteristics are described in [`VERSION.md`](./VERSION.md).
+Foundry 1 keeps the Foundry 0 foundation (Constitution, templates, one authorized product, human approval before merge) and adds a ratified four-gate operating contract for every substantive change. [`adrs/ADR-0001-model-neutral-foundry-boundaries.md`](./adrs/ADR-0001-model-neutral-foundry-boundaries.md) defines that contract, and [`adrs/ADR-0002-evaluator-independence-and-isolation.md`](./adrs/ADR-0002-evaluator-independence-and-isolation.md) extends its builder/evaluator separation with the durable independence standard. The current operating characteristics are described in [`VERSION.md`](./VERSION.md).
 
 **Daang Remote is the first authorized product and the first proving ground** for the four-gate contract.
 
@@ -23,11 +23,13 @@ Every substantive change to a product or to Foundry itself is evaluated against 
 
 Each gate result is one of **Pass**, **Fail**, **Pass with conditions**, or **N/A with a specific reason**. **A failed gate blocks merge by default.** Only an explicit, recorded **founder override** may allow a change with a failed gate to proceed, and an override does not convert a failure into a pass — it records accepted risk, rationale, follow-up, and reassessment.
 
-The producer of a change cannot be its sole evaluator. Author and evaluator roles are named in the record.
+The producer of a change cannot be its sole evaluator. Author and evaluator roles are named in the record, and independence is supported by recorded, checkable evidence appropriate to the evaluator arrangement under ADR-0002. A fresh conversation or separate role label is not sufficient by itself.
 
 ## Foundry 1 is manual and evidence-generating
 
-Foundry 1 is deliberately a manual discipline. It generates evidence about its own operation — what gates catch, what they miss, what they cost — so that later decisions about automation, tooling, or additional structure can be made against real data rather than aspiration. There is no CI enforcement, no automated gate runner, no orchestration layer, and no agent framework in this generation. Those may be proposed later, on evidence, via ADRs.
+Foundry 1 remains a manually governed discipline. Manual experimental run records, gate evidence, and accumulated statistics now exist and can inform later decisions about automation, tooling, or additional structure. They do not constitute CI enforcement, an automated gate runner, an automated statistics pipeline or dashboard, an orchestration layer, or an adopted agent framework.
+
+External tools such as Hermes may support bounded experiments and evidence collection, but they are not Foundry itself and their use does not adopt them as a Foundry agent framework. Foundry remains the authoritative governance and evidence system.
 
 ## What Foundry contains
 

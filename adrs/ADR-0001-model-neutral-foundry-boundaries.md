@@ -5,7 +5,7 @@
 - **Expires:** Does not expire
 - **Date:** 2026-07-13
 - **Author(s):** Bulldog-Master (founder)
-- **Related ADRs:** None
+- **Related ADRs:** ADR-0002 — Evaluator independence and isolation
 
 ## Context
 
@@ -39,15 +39,13 @@ Every substantive change to a product or to Foundry itself is evaluated against 
 
 ### Builder / evaluator separation
 
-The producer of a change **cannot be its sole evaluator**. During Foundry 1, separation may be satisfied by:
+The producer of a change **cannot be its sole evaluator**. ADR-0002 extends this requirement by defining independence as a property of accessible state and authority rather than visible session or role separation. A fresh conversation or a session that did not produce the change is not sufficient evidence by itself.
 
-- a different human reviewer;
-- a separate AI model or intelligence operating in an evaluator role;
-- a separate evaluation session that did not produce the change and is given the change packet, evidence, and applicable rubric;
-- deterministic verification where the gate criterion can be evaluated mechanically;
-- or an explicit combination of these.
+An evaluator arrangement may use a different human reviewer, an AI model or intelligence in an evaluator role, deterministic mechanical verification, or an explicit combination. Its record must provide checkable independence evidence appropriate to that arrangement, account for disqualifying prior exposure where blinded evaluation is claimed, identify the authorized evaluation context, and preserve producer-independent control of frozen authoritative evidence. Evaluators receive the minimum bounded context reasonably necessary; broader access is allowed when required and justified.
 
 The founder remains the final approval authority, but founder approval does not by itself substitute for independent gate evaluation when the founder produced the change. Naming the same person under two role labels on the same change does not satisfy this requirement.
+
+ADR-0002 extends this independence requirement; it does not replace or alter ADR-0001's four mandatory gates, their outcomes, or the failed-gate contract.
 
 ### Failed gates block by default
 
@@ -114,4 +112,4 @@ Individual gates may be recalibrated, narrowed, or demoted via Operational ADRs 
 ## Notes
 
 - This ADR intentionally does not select transports, cryptographic primitives, agent frameworks, or automation. Those are downstream decisions.
-- "Gates" here are a manual evaluation discipline. Foundry 1 explicitly does not introduce an automated gate runner, CI enforcement, or accumulated gate statistics; those may be proposed later on evidence.
+- "Gates" here are a manual evaluation discipline. Foundry 1 has manually accumulated experimental run records, gate evidence, and statistics, but it does not introduce an automated gate runner, CI enforcement, or an automated statistics pipeline or dashboard; those may be proposed later on evidence.

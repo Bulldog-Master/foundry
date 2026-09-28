@@ -17,7 +17,7 @@ Foundry 1 ratifies the four-gate operating contract on top of the Foundry 0 foun
   4. Quality and Verification
 - **Failed gates block by default.** A gate result of Fail blocks merge; Pass with conditions requires recorded conditions; N/A requires a specific recorded reason.
 - **Explicit founder override only.** A failed gate may only be bypassed by an explicit, recorded founder override that names the accepted risk, rationale, follow-up, and reassessment condition. An override does not convert a failure into a pass.
-- **Builder / evaluator separation.** The producer of a change cannot be its sole evaluator. Roles must be named in each record.
+- **Builder / evaluator separation.** The producer of a change cannot be its sole evaluator. Roles and the independence basis must be recorded under ADR-0002; accessible state, prior exposure, control of frozen authoritative evidence, authorized context, and evidence limitations matter more than nominal session separation.
 - **Manual gate evidence and measurement.** Gate records are authored by hand and reviewed by hand. Gates themselves generate evidence about their own value: what they caught, what they missed, what they cost.
 - **Model-neutral doctrine, model-specific operation.** Constitution, ADRs, charters, and gate definitions do not name a specific model. Prompts, adapters, calibration data, baselines, and thresholds are model-specific and are expected to change when the intelligence changes.
 - **First proving ground.** The first bounded Daang Remote change under Foundry 1 is also the first product-level test of the four-gate model.
@@ -26,10 +26,11 @@ Foundry 1 ratifies the four-gate operating contract on top of the Foundry 0 foun
 
 - No automation of gates.
 - No CI enforcement of gates or of Foundry structure.
-- No orchestration layer.
-- No agent framework.
+- No Foundry orchestration layer.
+- No adopted Foundry agent framework.
 - No automated gate runner.
-- No accumulated gate statistics or dashboards.
+- No automated statistics pipeline or dashboard. Manually accumulated experimental run records, gate evidence, and statistics exist.
+- External experimental tooling, including Hermes, does not change the Foundry generation and is not an adopted Foundry agent framework.
 
 These may be proposed later, on evidence, via new ADRs. They are not permitted to be introduced silently.
 
