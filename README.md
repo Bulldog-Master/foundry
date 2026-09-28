@@ -33,7 +33,7 @@ External tools such as Hermes may support bounded experiments and evidence colle
 
 ## What Foundry contains
 
-Foundry holds three classes of content, and the distinction matters.
+Foundry holds two kinds of content, and the distinction matters.
 
 **Ratifiable pre-commitments** may exist before they have been exercised in anger:
 
@@ -45,8 +45,7 @@ Foundry holds three classes of content, and the distinction matters.
 
 - **Architecture Decision Records (ADRs)** — decisions made against real problems. Types are Doctrinal or Operational; Operational ADRs carry an expiry.
 - **Lessons** — learning extracted from real work, promoted from Candidate to Verified only with evidence and explicit founder approval.
-
-**Operational records** narrowly record current external tooling or environment state relevant to Foundry execution. They are subordinate to the Constitution and ADRs, carry no standing gate authority, and may become stale or be superseded as operating reality changes. A record of external tooling such as Hermes does not make that tooling part of Foundry architecture or adopt it as a Foundry framework.
+- **Operational records** — a narrow subtype of operational knowledge used to record current external tooling or environment state relevant to Foundry execution. They are subordinate to the Constitution and ADRs, carry no standing gate authority, and may become stale or be superseded as operating reality changes. A record of external tooling such as Hermes does not make that tooling part of Foundry architecture or adopt it as a Foundry framework.
 
 ## What Foundry is not
 

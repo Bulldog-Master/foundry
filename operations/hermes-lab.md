@@ -8,49 +8,23 @@ As an Operational record, this document is subordinate to the Constitution and A
 
 The lab does not introduce CI gate enforcement, an automated gate runner, an orchestration layer, or an adopted Foundry agent framework. Manual gate records and human founder authority remain intact.
 
-The machine-state details below are the operator-observed baseline recorded for this dedicated lab, not self-proving evidence. Any disk, mount, Docker data-root, Hermes version or commit, gateway, provider or model path, or Anthropic-configuration fact on which a blinded experiment relies must be reverified before that experiment.
+Detailed machine baselines and version or provider specifics belong in the private execution and evidence record rather than this public governance record. Any machine-state or tooling fact on which a blinded experiment relies must be reverified before that experiment.
 
 ## Host
 
 - Operating system: Ubuntu 24.04.
 - Deployment: standalone machine.
-- Hermes and xx Network coexist on this host.
-- Hermes-lab operations must not modify xx Network core services. This is an operational prohibition, not a claim of OS- or container-enforced isolation unless separate evidence establishes that enforcement.
-- xxOps repair work is outside the scope of this document.
+- Unrelated production or network services on this host are outside Hermes-lab authority and must not be modified. This is an operational prohibition, not a claim of OS- or container-enforced isolation unless separate evidence establishes that enforcement.
 
 ## Storage
 
-The lab uses the second Corsair MP600 PRO NVMe, approximately 1.8 TB Linux-visible, with filesystem label `hermes-lab` mounted at `/srv/hermes-lab`.
-
-| Directory | Purpose |
-| --- | --- |
-| `/srv/hermes-lab/disposable-envs` | Separate disposable evaluation environments. |
-| `/srv/hermes-lab/docker` | Docker data root. |
-| `/srv/hermes-lab/evidence` | Authorized evaluator-isolation and run evidence. |
-| `/srv/hermes-lab/models` | Model-related operational artifacts. |
-| `/srv/hermes-lab/repositories` | Repository material authorized for lab operations. |
-| `/srv/hermes-lab/workspaces` | General lab workspaces that are not blinded evaluator environments. |
-| `/srv/hermes-lab/hermes-home` | Normal Hermes home. |
-| `/srv/hermes-lab/hermes-agent` | Hermes agent installation and working material. |
-
-Docker uses `/srv/hermes-lab/docker` as its data root.
+The lab root is `/srv/hermes-lab`. Blinded evaluator environments and authorized evidence are kept separate from normal Hermes state and general lab workspaces beneath that root. Detailed storage and directory topology belongs in the private execution and evidence record.
 
 ## Hermes configuration
 
-- Version: `v0.21.5+3779.g8f897d2 (2026.9.24)`.
-- Upstream commit: `8f897d2d`.
-- Normal home: `HERMES_HOME=/srv/hermes-lab/hermes-home`.
-- Gateway user service: intentionally disabled and inactive.
-- Provider path: OpenAI/ChatGPT-Codex.
-- Model: `gpt-5.6-sol`.
-- Reasoning: `medium`.
-- Anthropic subscription-token/API path: not configured for Hermes.
+Hermes is external experimental tooling. Its normal shared state, including its normal `HERMES_HOME`, must not bleed into blinded evaluator environments. Exact Hermes versions, provider and model selections, service state, and other execution-specific configuration belong in the private execution and evidence record and must be reverified before experiments.
 
 This record intentionally contains no secrets, credential contents, API keys, OAuth contents, token IDs, or authentication strings.
-
-## Security disclosure rationale
-
-Exact paths and topology are recorded because they are necessary to define the isolation and evidence boundaries for this dedicated lab. Their inclusion here does not imply that such details are harmless to publish elsewhere; they must remain confined to this engineering governance record.
 
 ## Evaluator-lab requirements
 
