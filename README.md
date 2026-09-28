@@ -27,13 +27,13 @@ The producer of a change cannot be its sole evaluator. Author and evaluator role
 
 ## Foundry 1 is manual and evidence-generating
 
-Foundry 1 remains a manually governed discipline. Manual experimental run records, gate evidence, and accumulated statistics now exist and can inform later decisions about automation, tooling, or additional structure. They do not constitute CI enforcement, an automated gate runner, an automated statistics pipeline or dashboard, an orchestration layer, or an adopted agent framework.
+Foundry 1 remains a manually governed discipline. It permits manual experimental run records, gate evidence, and statistics to accumulate and inform later decisions about automation, tooling, or additional structure. It has no CI enforcement, automated gate runner, automated statistics pipeline or dashboard, orchestration layer, or adopted agent framework.
 
 External tools such as Hermes may support bounded experiments and evidence collection, but they are not Foundry itself and their use does not adopt them as a Foundry agent framework. Foundry remains the authoritative governance and evidence system.
 
 ## What Foundry contains
 
-Foundry holds two kinds of content, and the distinction matters.
+Foundry holds three classes of content, and the distinction matters.
 
 **Ratifiable pre-commitments** may exist before they have been exercised in anger:
 
@@ -46,9 +46,11 @@ Foundry holds two kinds of content, and the distinction matters.
 - **Architecture Decision Records (ADRs)** — decisions made against real problems. Types are Doctrinal or Operational; Operational ADRs carry an expiry.
 - **Lessons** — learning extracted from real work, promoted from Candidate to Verified only with evidence and explicit founder approval.
 
+**Operational records** narrowly record current external tooling or environment state relevant to Foundry execution. They are subordinate to the Constitution and ADRs, carry no standing gate authority, and may become stale or be superseded as operating reality changes. A record of external tooling such as Hermes does not make that tooling part of Foundry architecture or adopt it as a Foundry framework.
+
 ## What Foundry is not
 
-Foundry is not a wiki, a design system, a style guide, a process handbook, or a CI configuration. Content that is not a constitutional constraint, a blank template, a real decision, a real lesson from real work, or a real product charter does not belong here.
+Foundry is not a wiki, a design system, a style guide, a process handbook, or a CI configuration. Content that is not a constitutional constraint, a blank template, a real decision, a real lesson from real work, a real product charter, or a narrowly scoped operational record does not belong here.
 
 ## Governance
 

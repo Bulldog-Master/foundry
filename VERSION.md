@@ -29,7 +29,7 @@ Foundry 1 ratifies the four-gate operating contract on top of the Foundry 0 foun
 - No Foundry orchestration layer.
 - No adopted Foundry agent framework.
 - No automated gate runner.
-- No automated statistics pipeline or dashboard. Manually accumulated experimental run records, gate evidence, and statistics exist.
+- No automated statistics pipeline or dashboard. Experimental run records, gate evidence, and statistics may accumulate manually through use.
 - External experimental tooling, including Hermes, does not change the Foundry generation and is not an adopted Foundry agent framework.
 
 These may be proposed later, on evidence, via new ADRs. They are not permitted to be introduced silently.

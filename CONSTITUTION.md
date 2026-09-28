@@ -1,8 +1,8 @@
 # Foundry Constitution
 
-- **Version:** 2
+- **Version:** 3
 - **Originally ratified:** 2026-07-12 (record: PR #1)
-- **Last amended:** 2026-07-13 (record: PR #3)
+- **Last amended:** 2026-09-27 (record: PR #9)
 
 This document is the founder's pre-commitment about how work is done under Foundry. It binds the founder, the Foundry itself, every product built under it, and any intelligence — human or artificial — operating inside it.
 

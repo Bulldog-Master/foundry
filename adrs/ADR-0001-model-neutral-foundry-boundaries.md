@@ -112,4 +112,4 @@ Individual gates may be recalibrated, narrowed, or demoted via Operational ADRs 
 ## Notes
 
 - This ADR intentionally does not select transports, cryptographic primitives, agent frameworks, or automation. Those are downstream decisions.
-- "Gates" here are a manual evaluation discipline. Foundry 1 has manually accumulated experimental run records, gate evidence, and statistics, but it does not introduce an automated gate runner, CI enforcement, or an automated statistics pipeline or dashboard; those may be proposed later on evidence.
+- "Gates" here are a manual evaluation discipline. Manual experimental run records, gate evidence, and statistics may accumulate through use, but Foundry 1 does not introduce an automated gate runner, CI enforcement, or an automated statistics pipeline or dashboard; those may be proposed later on evidence.
