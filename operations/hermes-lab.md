@@ -12,7 +12,7 @@ Detailed machine baselines and version or provider specifics belong in the priva
 
 ## Host
 
-- Operating system: Ubuntu 24.04.
+- Operating system: Linux host dedicated to the Hermes lab role.
 - Deployment: standalone machine.
 - Unrelated production or network services on this host are outside Hermes-lab authority and must not be modified. This is an operational prohibition, not a claim of OS- or container-enforced isolation unless separate evidence establishes that enforcement.
 
