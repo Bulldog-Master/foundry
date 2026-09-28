@@ -48,7 +48,18 @@ Broad or general instructions such as "proceed" do not expand a previously bound
 
 ## Gate records
 
-Each gate must record one outcome: **Pass**, **Fail**, **Pass with conditions**, or **N/A with a specific reason**. The evaluator must be an **independent source** — a different human reviewer, a separate AI model or intelligence in an evaluator role, a separate evaluation session that did not produce the change, deterministic mechanical verification, or an explicit combination of these. Name the actual reviewing source (for example: "Independent AI review session, followed by founder approval"). **Naming the same person under two role labels on the same change does not satisfy independence.** The founder remains the final approval authority; founder approval does not by itself substitute for independent gate evaluation when the founder produced the change.
+Each gate must record one outcome: **Pass**, **Fail**, **Pass with conditions**, or **N/A with a specific reason**. The evaluator must be an **independent source** under ADR-0002. Independence depends on accessible state and authority, not a separate session or role label alone. **Naming the same person under two role labels on the same change does not satisfy independence.** The founder remains the final approval authority; founder approval does not by itself substitute for independent gate evaluation when the founder produced the change.
+
+Record the following for every evaluator arrangement, distinguishing between gates where necessary:
+
+- **Evaluator identity and role:**
+- **Independence basis:**
+- **Recorded/checkable independence evidence appropriate to this arrangement:**
+- **Prior exposure:** If blinded evaluation is claimed, confirm that the evaluator had no exposure to deliberately withheld information that would disqualify it for this execution.
+- **Authorized evaluation context:** Describe the bounded context supplied and justify any broader access required by the gate.
+- **Known limitations of the independence evidence:**
+
+No single mechanism is universally required. A different human reviewer may rely on organizational and access-separation evidence; a model evaluator may require environment and effective-configuration evidence; a deterministic check may have a mechanical evidence basis. Do not claim that hashes, canaries, fresh sessions, or any other one technique proves independence beyond the boundary it actually tests.
 
 ### 1. Architecture Gate
 
