@@ -1,0 +1,27 @@
+FOUNDRY_SANDBOX_BASELINE_VERSION=1
+HOSTNAME=foundry-sandbox-1
+OS=Ubuntu 26.04.1 LTS
+SSH_PORT=2222
+EXEC_USER=foundry-exec
+EXEC_UID=1002
+EXEC_GID=1002
+SUBUID=231072:65536
+SUBGID=231072:65536
+EXPORT_GROUP=foundry-export
+
+UFW_DEFAULT_INCOMING=deny
+UFW_DEFAULT_OUTGOING=deny
+UFW_ALLOWED_INCOMING=2222/tcp
+
+CANDIDATE_NETWORK=none
+CANDIDATE_ROOTFS=read-only
+CANDIDATE_CAPABILITIES=none
+CANDIDATE_NO_NEW_PRIVILEGES=true
+
+MEMORY_MAX=256M
+TASKS_MAX=64
+CPU_LIMIT=0.5
+
+IMAGE=docker.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+
+KNOWN_LIMITATION=rootless Podman does not currently report AppArmor confinement; outer disposable KVM VPS plus namespaces/seccomp/rootless/non-root/no-network/read-only/cgroups is the Baseline v1 boundary.

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+umask 077
+
+JOB_ID="job-$(date -u +%Y%m%dT%H%M%SZ)-$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n')"
+BASE="/srv/foundry-sandbox/jobs/${JOB_ID}"
+
+mkdir -p \
+  "${BASE}/input" \
+  "${BASE}/work" \
+  "${BASE}/output"
+
+chown root:root "${BASE}" "${BASE}/input"
+chmod 711 "${BASE}"
+chmod 755 "${BASE}/input"
+
+chown foundry-exec:foundry-exec \
+  "${BASE}/work" \
+  "${BASE}/output"
+
+chmod 700 \
+  "${BASE}/work" \
+  "${BASE}/output"
+
+printf 'CREATED\n' > "${BASE}/state"
+chown root:root "${BASE}/state"
+chmod 600 "${BASE}/state"
+
+printf '%s\n' "${JOB_ID}"

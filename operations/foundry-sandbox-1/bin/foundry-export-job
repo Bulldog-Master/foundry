@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$EUID" -ne 0 ]; then
+  echo "must be run as root" >&2
+  exit 63
+fi
+
+if [ "$#" -ne 1 ]; then
+  echo "usage: $0 <job-id>" >&2
+  exit 64
+fi
+
+JOB_ID="$1"
+
+if [[ ! "$JOB_ID" =~ ^job-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}$ ]]; then
+  echo "invalid job id" >&2
+  exit 65
+fi
+
+BASE="/srv/foundry-sandbox/jobs/${JOB_ID}"
+EVIDENCE="/srv/foundry-sandbox/evidence/${JOB_ID}"
+EXPORT_DIR="/srv/foundry-sandbox/export"
+HASHER="/opt/foundry/bin/foundry-tree-hash"
+
+[ -d "$BASE" ] || { echo "job not found" >&2; exit 66; }
+[ -f "${BASE}/state" ] || { echo "state file missing" >&2; exit 66; }
+
+STATE="$(cat "${BASE}/state")"
+
+[ "$STATE" = "COMPLETE" ] || {
+  echo "job is not COMPLETE; refusing export" >&2
+  exit 67
+}
+
+[ -d "$EVIDENCE" ] || { echo "evidence not found" >&2; exit 66; }
+[ -x "$HASHER" ] || { echo "tree hasher not found" >&2; exit 66; }
+
+# Verify the locally sealed evidence packet before packaging.
+(
+  cd "$EVIDENCE"
+  sha256sum -c packet.sha256 >/dev/null
+) || {
+  echo "evidence packet verification failed" >&2
+  exit 68
+}
+
+MANIFEST_OUTPUT_SHA256="$(
+  awk -F= '$1=="OUTPUT_SHA256"{print $2}' \
+    "${EVIDENCE}/manifest.txt"
+)"
+
+[ -n "$MANIFEST_OUTPUT_SHA256" ] || {
+  echo "manifest is missing OUTPUT_SHA256" >&2
+  exit 68
+}
+
+CURRENT_OUTPUT_SHA256="$("$HASHER" "${BASE}/output")"
+
+[ "$CURRENT_OUTPUT_SHA256" = "$MANIFEST_OUTPUT_SHA256" ] || {
+  echo "output hash does not match manifest" >&2
+  exit 68
+}
+
+TMP="$(mktemp -d /run/foundry-export.XXXXXX)"
+trap 'rm -rf "$TMP"' EXIT
+
+ROOT="${TMP}/${JOB_ID}"
+
+mkdir -p \
+  "${ROOT}/job" \
+  "${ROOT}/evidence" \
+  "${ROOT}/output"
+
+cp -a "${BASE}/state" "${ROOT}/job/state"
+cp -a "${BASE}/input.sha256" "${ROOT}/job/input.sha256"
+cp -a "${EVIDENCE}/." "${ROOT}/evidence/"
+cp -a "${BASE}/output/." "${ROOT}/output/"
+
+cat > "${ROOT}/export-manifest.txt" <<MANIFEST
+JOB_ID=${JOB_ID}
+EXPORT_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+JOB_STATE=${STATE}
+INPUT_SHA256=$(cat "${BASE}/input.sha256")
+OUTPUT_SHA256=${CURRENT_OUTPUT_SHA256}
+EVIDENCE_PACKET_SHA256=$(sha256sum "${EVIDENCE}/packet.sha256" | awk '{print $1}')
+MANIFEST
+
+(
+  cd "$ROOT"
+  find . -type f ! -name export-files.sha256 -print0 \
+    | sort -z \
+    | xargs -0 sha256sum \
+    > export-files.sha256
+)
+
+BUNDLE="${EXPORT_DIR}/${JOB_ID}.tar"
+BUNDLE_SHA="${BUNDLE}.sha256"
+
+[ ! -e "$BUNDLE" ] || {
+  echo "export bundle already exists" >&2
+  exit 69
+}
+
+tar \
+  --owner=0 \
+  --group=0 \
+  --numeric-owner \
+  -C "$TMP" \
+  -cf "$BUNDLE" \
+  "$JOB_ID"
+
+sha256sum "$BUNDLE" > "$BUNDLE_SHA"
+
+chown root:foundry-export "$BUNDLE" "$BUNDLE_SHA"
+chmod 0440 "$BUNDLE" "$BUNDLE_SHA"
+
+echo "EXPORT_READY"
+echo "JOB_ID=${JOB_ID}"
+echo "BUNDLE=${BUNDLE}"
+echo "SHA256=$(sha256sum "$BUNDLE" | awk '{print $1}')"
