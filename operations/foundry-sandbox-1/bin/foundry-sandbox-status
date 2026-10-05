@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$EUID" -ne 0 ]; then
+  echo "must be run as root" >&2
+  exit 63
+fi
+
+JOBS="/srv/foundry-sandbox/jobs"
+
+echo "=== FOUNDRY SANDBOX JOB STATUS ==="
+
+TOTAL=0
+RUNNING=0
+LIVE=0
+STALE=0
+
+shopt -s nullglob
+
+for BASE in "$JOBS"/job-*; do
+  [ -d "$BASE" ] || continue
+  [ -f "$BASE/state" ] || continue
+
+  JOB_ID="$(basename "$BASE")"
+  STATE="$(cat "$BASE/state")"
+  TOTAL=$((TOTAL + 1))
+
+  [ "$STATE" = "RUNNING" ] || continue
+
+  RUNNING=$((RUNNING + 1))
+  UNIT="foundry-${JOB_ID}.service"
+
+  UNIT_ACTIVE=false
+  RUNNER_ACTIVE=false
+
+  if systemctl is-active --quiet "$UNIT" 2>/dev/null; then
+    UNIT_ACTIVE=true
+  fi
+
+  if pgrep -af '/opt/foundry/bin/foundry-run-job' 2>/dev/null \
+      | grep -F -- "$JOB_ID" >/dev/null 2>&1; then
+    RUNNER_ACTIVE=true
+  fi
+
+  if [ "$UNIT_ACTIVE" = "true" ] || [ "$RUNNER_ACTIVE" = "true" ]; then
+    LIVE=$((LIVE + 1))
+    printf 'LIVE   %s  unit=%s runner=%s\n' \
+      "$JOB_ID" "$UNIT_ACTIVE" "$RUNNER_ACTIVE"
+  else
+    STALE=$((STALE + 1))
+    printf 'STALE  %s  unit=false runner=false\n' "$JOB_ID"
+  fi
+done
+
+echo
+echo "TOTAL_JOBS=$TOTAL"
+echo "RUNNING_JOBS=$RUNNING"
+echo "LIVE_RUNNING=$LIVE"
+echo "STALE_RUNNING=$STALE"
+
+if [ "$STALE" -eq 0 ]; then
+  echo "FOUNDRY_STALE_RUNNING=NONE"
+  exit 0
+else
+  echo "FOUNDRY_STALE_RUNNING=DETECTED"
+  exit 2
+fi

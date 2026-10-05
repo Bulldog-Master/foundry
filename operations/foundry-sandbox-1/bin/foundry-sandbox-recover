@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$EUID" -ne 0 ]; then
+  echo "must be run as root" >&2
+  exit 63
+fi
+
+JOBS="/srv/foundry-sandbox/jobs"
+RECOVERED=0
+
+echo "=== FOUNDRY STALE JOB RECOVERY ==="
+
+shopt -s nullglob
+
+for BASE in "$JOBS"/job-*; do
+  [ -d "$BASE" ] || continue
+  [ -f "$BASE/state" ] || continue
+
+  JOB_ID="$(basename "$BASE")"
+  STATE="$(cat "$BASE/state")"
+
+  [ "$STATE" = "RUNNING" ] || continue
+
+  UNIT="foundry-${JOB_ID}.service"
+
+  UNIT_ACTIVE=false
+  RUNNER_ACTIVE=false
+
+  if systemctl is-active --quiet "$UNIT" 2>/dev/null; then
+    UNIT_ACTIVE=true
+  fi
+
+  if pgrep -af '/opt/foundry/bin/foundry-run-job' 2>/dev/null \
+      | grep -F -- "$JOB_ID" >/dev/null 2>&1; then
+    RUNNER_ACTIVE=true
+  fi
+
+  if [ "$UNIT_ACTIVE" = "true" ] || [ "$RUNNER_ACTIVE" = "true" ]; then
+    printf 'SKIP      %s still live\n' "$JOB_ID"
+    continue
+  fi
+
+  RECOVERY_FILE="${BASE}/recovery.txt"
+  RECOVERY_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  cat > "$RECOVERY_FILE" <<RECOVERY
+JOB_ID=${JOB_ID}
+RECOVERY_UTC=${RECOVERY_UTC}
+PREVIOUS_STATE=RUNNING
+NEW_STATE=FAILED
+REASON=stale RUNNING job with no active systemd unit and no active runner process
+RECOVERY
+
+  chown root:root "$RECOVERY_FILE"
+  chmod 0400 "$RECOVERY_FILE"
+
+  printf 'FAILED\n' > "${BASE}/state"
+  chown root:root "${BASE}/state"
+  chmod 0400 "${BASE}/state"
+
+  printf 'RECOVERED %s -> FAILED\n' "$JOB_ID"
+  RECOVERED=$((RECOVERED + 1))
+done
+
+echo
+echo "RECOVERED_JOBS=$RECOVERED"

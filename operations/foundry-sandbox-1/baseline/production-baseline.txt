@@ -1,0 +1,110 @@
+FOUNDRY_SANDBOX_BASELINE_VERSION=1
+HOSTNAME=foundry-sandbox-1
+CREATED_UTC=2026-10-04T22:33:48Z
+OS=Ubuntu 26.04.1 LTS
+KERNEL=7.0.0-38-generic
+
+=== COMPONENT SHA256 ===
+aac0236ae904b06ff2a68b39c6b8ebb360c1c6d00edaa04047cc68cad5ab463b  /etc/foundry/sandbox/policy.conf
+91e1d602ff770f9f20000e7da27bed9eb8bf995a55f36910c565069c27787166  /opt/foundry/bin/foundry-run-job
+2f27f3bba18071e5e0b22a36bce854ca871e0f9c5abd095f01cd6e54702f61c0  /opt/foundry/bin/foundry-job-create
+5a4d28e4e786f6c0cd40f3dd0b59cdbc1d5b3559a260beb951b48cdf505f33f5  /opt/foundry/bin/foundry-stage-input
+a002b36fbdfde93ab204c5cfbb35334f188da6d8dff88ecb9c710b1d7071c150  /opt/foundry/bin/foundry-tree-hash
+50ef4c24c02a735908d1af9f1e73e12de572c2d9790b2446038a56044a67fd54  /opt/foundry/bin/foundry-sandbox-status
+aa4f53a7bea9bddc187d3e5bdf41093ab4181216ffcbb00662735a953c0f74d7  /opt/foundry/bin/foundry-sandbox-recover
+223b48f2e6fe8a9067861ea0170de7c8a6776e4d6bcd1441d9cd3a9b908fe4f2  /opt/foundry/bin/foundry-export-job
+16496679b9b8917ff2d2fa072b0f3b676d70c64268d777480b43f5022d6a1ed7  /opt/foundry/bin/foundry-sandbox-verify
+
+=== RUNTIME VERSIONS ===
+podman version 5.7.0
+crun version 1.21
+systemd 259 (259.5-0ubuntu3.4)
+
+=== IMAGE ===
+IMAGE=docker.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764
+
+=== FIREWALL ===
+Status: active
+Logging: on (low)
+Default: deny (incoming), deny (outgoing), disabled (routed)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+2222/tcp                   ALLOW IN    Anywhere                  
+2222/tcp (v6)              ALLOW IN    Anywhere (v6)             
+
+
+=== SSH EFFECTIVE POLICY ===
+port 2222
+maxauthtries 6
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
+kbdinteractiveauthentication no
+
+=== BASELINE VERIFICATION ===
+=== FOUNDRY SANDBOX BASELINE VERIFICATION ===
+
+PASS  hostname
+PASS  foundry-exec UID
+PASS  foundry-exec GID
+PASS  foundry-exec shell
+PASS  foundry-exec has no supplementary groups
+PASS  subuid mapping
+PASS  subgid mapping
+PASS  /etc/foundry/sandbox/policy.conf owned by root:root
+PASS  /opt/foundry/bin/foundry-run-job owned by root:root
+PASS  /opt/foundry/bin/foundry-job-create owned by root:root
+PASS  /opt/foundry/bin/foundry-stage-input owned by root:root
+PASS  /opt/foundry/bin/foundry-tree-hash owned by root:root
+PASS  NETWORK_MODE
+PASS  READ_ONLY_ROOT
+PASS  DROP_ALL_CAPABILITIES
+PASS  NO_NEW_PRIVILEGES
+PASS  RUN_AS_UID
+PASS  RUN_AS_GID
+PASS  USERNS_MODE
+PASS  MEMORY_LIMIT
+PASS  PIDS_LIMIT
+PASS  CPU_LIMIT
+PASS  container image uses immutable SHA256 reference
+PASS  SSH port
+PASS  SSH root login disabled
+PASS  SSH public-key authentication enabled
+PASS  SSH password authentication disabled
+PASS  SSH keyboard-interactive disabled
+PASS  SSH MaxAuthTries
+PASS  UFW active
+PASS  UFW default deny incoming/outgoing
+PASS  SSH 2222/tcp permitted
+PASS  no unexpected externally reachable listeners
+PASS  evidence directory owner
+PASS  evidence directory mode
+PASS  container-storage owner
+PASS  container-storage mode
+PASS  Podman is rootless for foundry-exec
+PASS  pinned container image exists locally
+PASS  /opt/foundry/bin/foundry-sandbox-status owned by root:root
+PASS  /opt/foundry/bin/foundry-sandbox-status syntax
+PASS  /opt/foundry/bin/foundry-sandbox-recover owned by root:root
+PASS  /opt/foundry/bin/foundry-sandbox-recover syntax
+PASS  /opt/foundry/bin/foundry-export-job owned by root:root
+PASS  /opt/foundry/bin/foundry-export-job syntax
+PASS  /opt/foundry/bin/foundry-sandbox-verify owned by root:root
+PASS  /opt/foundry/bin/foundry-sandbox-verify syntax
+PASS  foundry-export group exists
+PASS  export directory owner
+PASS  export directory mode
+PASS  foundry-exec excluded from foundry-export
+PASS  foundry-exec cannot read export directory
+PASS  no stale RUNNING jobs
+PASS  host outbound TCP blocked
+PASS  runner syntax
+PASS  job-create syntax
+PASS  stage-input syntax
+
+=== RESULT ===
+PASS=57
+FAIL=0
+FOUNDRY_SANDBOX_BASELINE=PASS

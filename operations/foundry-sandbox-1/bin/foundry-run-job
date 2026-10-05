@@ -1,0 +1,299 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$EUID" -ne 0 ]; then
+  echo "must be run as root" >&2
+  exit 63
+fi
+
+if [ "$#" -lt 1 ]; then
+  echo "usage: $0 <job-id> [command...]" >&2
+  exit 64
+fi
+
+JOB_ID="$1"
+shift
+
+if [[ ! "$JOB_ID" =~ ^job-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}$ ]]; then
+  echo "invalid job id" >&2
+  exit 65
+fi
+
+BASE="/srv/foundry-sandbox/jobs/${JOB_ID}"
+POLICY="/etc/foundry/sandbox/policy.conf"
+EVIDENCE="/srv/foundry-sandbox/evidence/${JOB_ID}"
+RUNNER="/opt/foundry/bin/foundry-run-job"
+HASHER="/opt/foundry/bin/foundry-tree-hash"
+RUNTIME_DIR="/run/user/1002"
+UNIT="foundry-${JOB_ID}"
+
+[ -d "${BASE}/input" ]  || { echo "missing input directory" >&2; exit 66; }
+[ -d "${BASE}/work" ]   || { echo "missing work directory" >&2; exit 66; }
+[ -d "${BASE}/output" ] || { echo "missing output directory" >&2; exit 66; }
+[ -r "$POLICY" ]        || { echo "missing policy" >&2; exit 66; }
+[ -x "$HASHER" ]        || { echo "missing tree hasher" >&2; exit 66; }
+[ -f "${BASE}/state" ]  || { echo "missing state file" >&2; exit 66; }
+
+CURRENT_STATE="$(cat "${BASE}/state")"
+
+[ "$CURRENT_STATE" = "READY" ] || {
+  echo "job is not READY; refusing execution" >&2
+  exit 67
+}
+
+[ -f "${BASE}/input.sha256" ] || {
+  echo "missing sealed input hash" >&2
+  exit 66
+}
+
+[ ! -e "$EVIDENCE" ] || {
+  echo "job already has evidence; refusing re-execution" >&2
+  exit 67
+}
+
+if find "${BASE}/work" -mindepth 1 -print -quit | grep -q .; then
+  echo "work directory is not empty" >&2
+  exit 68
+fi
+
+if find "${BASE}/output" -mindepth 1 -print -quit | grep -q .; then
+  echo "output directory is not empty" >&2
+  exit 68
+fi
+
+STORED_INPUT_SHA256="$(cat "${BASE}/input.sha256")"
+CURRENT_INPUT_SHA256="$("$HASHER" "${BASE}/input")"
+
+[ "$STORED_INPUT_SHA256" = "$CURRENT_INPUT_SHA256" ] || {
+  echo "sealed input hash mismatch; refusing execution" >&2
+  exit 69
+}
+
+# shellcheck disable=SC1090
+source "$POLICY"
+
+[ "$NETWORK_MODE" = "none" ] || {
+  echo "policy violation: NETWORK_MODE must be none" >&2
+  exit 70
+}
+
+[ "$READ_ONLY_ROOT" = "true" ] || {
+  echo "policy violation: root filesystem must be read-only" >&2
+  exit 70
+}
+
+[ "$DROP_ALL_CAPABILITIES" = "true" ] || {
+  echo "policy violation: capabilities must be dropped" >&2
+  exit 70
+}
+
+[ "$NO_NEW_PRIVILEGES" = "true" ] || {
+  echo "policy violation: no-new-privileges must be enabled" >&2
+  exit 70
+}
+
+[ "$USERNS_MODE" = "keep-id" ] || {
+  echo "policy violation: USERNS_MODE must be keep-id" >&2
+  exit 70
+}
+
+[[ "$IMAGE" =~ @sha256:[0-9a-f]{64}$ ]] || {
+  echo "policy violation: image must use immutable sha256 digest" >&2
+  exit 70
+}
+
+if [ "$#" -eq 0 ]; then
+  set -- sh
+fi
+
+CPU_QUOTA="$(awk -v n="$CPU_LIMIT" '
+BEGIN {
+  if (n <= 0) exit 1
+  printf "%g%%", n * 100
+}
+')" || {
+  echo "invalid CPU_LIMIT" >&2
+  exit 70
+}
+
+install -d \
+  -m 0700 \
+  -o foundry-exec \
+  -g foundry-exec \
+  "$RUNTIME_DIR"
+
+mkdir "$EVIDENCE"
+chown root:root "$EVIDENCE"
+chmod 0700 "$EVIDENCE"
+
+START_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+POLICY_SHA256="$(sha256sum "$POLICY" | awk '{print $1}')"
+RUNNER_SHA256="$(sha256sum "$RUNNER" | awk '{print $1}')"
+INPUT_SHA256="$CURRENT_INPUT_SHA256"
+
+printf '%q ' "$@" > "${EVIDENCE}/command.txt"
+printf '\n' >> "${EVIDENCE}/command.txt"
+
+# Create the container first. No candidate code executes at this stage.
+set +e
+CONTAINER_ID="$(
+  sudo -u foundry-exec \
+    env HOME=/home/foundry-exec XDG_RUNTIME_DIR="$RUNTIME_DIR" \
+    bash -c '
+      set -euo pipefail
+      cd /home/foundry-exec
+
+      exec podman create \
+        --pull=never \
+        --network="$1" \
+        --read-only \
+        --userns="$2" \
+        --user "$3:$4" \
+        --cap-drop=ALL \
+        --security-opt=no-new-privileges \
+        --tmpfs "/tmp:rw,nosuid,nodev,noexec,size=$5" \
+        --mount "type=bind,src=$6/input,dst=/input,ro=true" \
+        --mount "type=bind,src=$6/work,dst=/work" \
+        --mount "type=bind,src=$6/output,dst=/output" \
+        "$7" \
+        "${@:8}"
+    ' bash \
+      "$NETWORK_MODE" \
+      "$USERNS_MODE" \
+      "$RUN_AS_UID" \
+      "$RUN_AS_GID" \
+      "$TMPFS_SIZE" \
+      "$BASE" \
+      "$IMAGE" \
+      "$@"
+)"
+CREATE_RC=$?
+set -e
+
+if [ "$CREATE_RC" -ne 0 ] || [[ ! "$CONTAINER_ID" =~ ^[0-9a-f]{64}$ ]]; then
+  END_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  cat > "${EVIDENCE}/stderr.log" <<ERR
+container creation failed
+ERR
+  : > "${EVIDENCE}/stdout.log"
+
+  cat > "${EVIDENCE}/manifest.txt" <<MANIFEST
+JOB_ID=${JOB_ID}
+START_UTC=${START_UTC}
+END_UTC=${END_UTC}
+EXIT_CODE=${CREATE_RC}
+CONTAINER_CREATED=false
+CONTAINER_ID=none
+IMAGE=${IMAGE}
+POLICY_SHA256=${POLICY_SHA256}
+RUNNER_SHA256=${RUNNER_SHA256}
+INPUT_SHA256=${INPUT_SHA256}
+RESOURCE_BOUNDARY=systemd
+MEMORY_MAX=${MEMORY_LIMIT}
+TASKS_MAX=${PIDS_LIMIT}
+CPU_QUOTA=${CPU_QUOTA}
+NETWORK_MODE=${NETWORK_MODE}
+RUN_AS_UID=${RUN_AS_UID}
+RUN_AS_GID=${RUN_AS_GID}
+USERNS_MODE=${USERNS_MODE}
+MANIFEST
+
+  (
+    cd "$EVIDENCE"
+    sha256sum command.txt manifest.txt stdout.log stderr.log > packet.sha256
+  )
+
+  chown -R root:root "$EVIDENCE"
+  chmod 0500 "$EVIDENCE"
+  chmod 0400 "$EVIDENCE"/*
+
+  printf 'FAILED\n' > "${BASE}/state"
+  chown root:root "${BASE}/state"
+  chmod 0400 "${BASE}/state"
+
+  exit 71
+fi
+
+printf 'RUNNING\n' > "${BASE}/state"
+chown root:root "${BASE}/state"
+chmod 0600 "${BASE}/state"
+
+# Candidate execution occurs only here, inside the verified systemd boundary.
+set +e
+systemd-run \
+  --quiet \
+  --wait \
+  --pipe \
+  --collect \
+  --unit="$UNIT" \
+  --uid=foundry-exec \
+  --gid=foundry-exec \
+  --property="MemoryMax=${MEMORY_LIMIT}" \
+  --property="TasksMax=${PIDS_LIMIT}" \
+  --property="CPUQuota=${CPU_QUOTA}" \
+  --property="KillMode=control-group" \
+  --setenv="HOME=/home/foundry-exec" \
+  --setenv="XDG_RUNTIME_DIR=${RUNTIME_DIR}" \
+  /usr/bin/podman start --attach "$CONTAINER_ID" \
+  >"${EVIDENCE}/stdout.log" \
+  2>"${EVIDENCE}/stderr.log"
+
+RC=$?
+set -e
+
+END_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# Remove the stopped container only after the candidate has finished.
+sudo -u foundry-exec \
+  env HOME=/home/foundry-exec XDG_RUNTIME_DIR="$RUNTIME_DIR" \
+  podman rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+
+# Final-seal candidate output before hashing.
+# The recorded hash must describe the actual immutable post-run tree,
+# including its final ownership-independent mode metadata.
+chown -R root:root "${BASE}/output"
+chmod -R u=rX,go= "${BASE}/output"
+
+OUTPUT_SHA256="$("$HASHER" "${BASE}/output")"
+
+cat > "${EVIDENCE}/manifest.txt" <<MANIFEST
+JOB_ID=${JOB_ID}
+START_UTC=${START_UTC}
+END_UTC=${END_UTC}
+EXIT_CODE=${RC}
+CONTAINER_CREATED=true
+CONTAINER_ID=${CONTAINER_ID}
+IMAGE=${IMAGE}
+POLICY_SHA256=${POLICY_SHA256}
+RUNNER_SHA256=${RUNNER_SHA256}
+INPUT_SHA256=${INPUT_SHA256}
+OUTPUT_SHA256=${OUTPUT_SHA256}
+RESOURCE_BOUNDARY=systemd
+MEMORY_MAX=${MEMORY_LIMIT}
+TASKS_MAX=${PIDS_LIMIT}
+CPU_QUOTA=${CPU_QUOTA}
+NETWORK_MODE=${NETWORK_MODE}
+RUN_AS_UID=${RUN_AS_UID}
+RUN_AS_GID=${RUN_AS_GID}
+USERNS_MODE=${USERNS_MODE}
+MANIFEST
+
+chown -R root:root "$EVIDENCE"
+
+(
+  cd "$EVIDENCE"
+  sha256sum command.txt manifest.txt stdout.log stderr.log > packet.sha256
+)
+
+chmod 0500 "$EVIDENCE"
+chmod 0400 "$EVIDENCE"/*
+
+printf 'COMPLETE\n' > "${BASE}/state"
+chown root:root "${BASE}/state"
+chmod 0400 "${BASE}/state"
+
+cat "${EVIDENCE}/stdout.log"
+cat "${EVIDENCE}/stderr.log" >&2
+
+exit "$RC"

@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -ne 2 ]; then
+  echo "usage: $0 <job-id> <source-directory>" >&2
+  exit 64
+fi
+
+JOB_ID="$1"
+SOURCE="$2"
+
+if [[ ! "$JOB_ID" =~ ^job-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}$ ]]; then
+  echo "invalid job id" >&2
+  exit 65
+fi
+
+BASE="/srv/foundry-sandbox/jobs/${JOB_ID}"
+INPUT="${BASE}/input"
+STATE="${BASE}/state"
+HASHER="/opt/foundry/bin/foundry-tree-hash"
+
+[ -d "$BASE" ]   || { echo "job does not exist" >&2; exit 66; }
+[ -d "$INPUT" ]  || { echo "input directory missing" >&2; exit 66; }
+[ -f "$STATE" ]  || { echo "state file missing" >&2; exit 66; }
+[ -d "$SOURCE" ] || { echo "source is not a directory" >&2; exit 66; }
+
+CURRENT_STATE="$(cat "$STATE")"
+
+[ "$CURRENT_STATE" = "CREATED" ] || {
+  echo "job is not in CREATED state" >&2
+  exit 67
+}
+
+if find "$INPUT" -mindepth 1 -print -quit | grep -q .; then
+  echo "input directory is not empty" >&2
+  exit 68
+fi
+
+# Refuse device nodes, sockets, FIFOs, or other special files.
+if find "$SOURCE" \
+    \( ! -type f -a ! -type d -a ! -type l \) \
+    -print -quit | grep -q .; then
+  echo "source contains unsupported special files" >&2
+  exit 69
+fi
+
+cp -a -- "$SOURCE"/. "$INPUT"/
+
+chown -R root:root "$INPUT"
+
+# Input becomes immutable to the execution account.
+find "$INPUT" -type d -exec chmod 0555 {} +
+find "$INPUT" -type f -exec chmod u=r,go=r {} +
+find "$INPUT" -type l -exec chown -h root:root {} +
+
+INPUT_SHA256="$("$HASHER" "$INPUT")"
+
+printf '%s\n' "$INPUT_SHA256" > "${BASE}/input.sha256"
+chown root:root "${BASE}/input.sha256"
+chmod 0400 "${BASE}/input.sha256"
+
+printf 'READY\n' > "$STATE"
+chown root:root "$STATE"
+chmod 0600 "$STATE"
+
+printf 'JOB_ID=%s\n' "$JOB_ID"
+printf 'STATE=READY\n'
+printf 'INPUT_SHA256=%s\n' "$INPUT_SHA256"

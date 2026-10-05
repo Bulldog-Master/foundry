@@ -1,0 +1,423 @@
+#!/usr/bin/env bash
+set -u
+
+PASS=0
+FAIL=0
+
+pass() {
+  printf 'PASS  %s\n' "$1"
+  PASS=$((PASS + 1))
+}
+
+fail() {
+  printf 'FAIL  %s\n' "$1"
+  FAIL=$((FAIL + 1))
+}
+
+check_eq() {
+  local description="$1"
+  local actual="$2"
+  local expected="$3"
+
+  if [ "$actual" = "$expected" ]; then
+    pass "$description"
+  else
+    fail "$description (expected: $expected ; got: $actual)"
+  fi
+}
+
+echo "=== FOUNDRY SANDBOX BASELINE VERIFICATION ==="
+echo
+
+# ----------------------------------------------------------------------
+# Host identity
+# ----------------------------------------------------------------------
+
+check_eq \
+  "hostname" \
+  "$(hostname)" \
+  "foundry-sandbox-1"
+
+# ----------------------------------------------------------------------
+# Execution account
+# ----------------------------------------------------------------------
+
+check_eq \
+  "foundry-exec UID" \
+  "$(id -u foundry-exec 2>/dev/null || echo missing)" \
+  "1002"
+
+check_eq \
+  "foundry-exec GID" \
+  "$(id -g foundry-exec 2>/dev/null || echo missing)" \
+  "1002"
+
+check_eq \
+  "foundry-exec shell" \
+  "$(getent passwd foundry-exec | cut -d: -f7)" \
+  "/usr/sbin/nologin"
+
+if [ "$(id -Gn foundry-exec 2>/dev/null)" = "foundry-exec" ]; then
+  pass "foundry-exec has no supplementary groups"
+else
+  fail "foundry-exec has unexpected supplementary groups: $(id -Gn foundry-exec 2>/dev/null)"
+fi
+
+if grep -qx 'foundry-exec:231072:65536' /etc/subuid; then
+  pass "subuid mapping"
+else
+  fail "subuid mapping"
+fi
+
+if grep -qx 'foundry-exec:231072:65536' /etc/subgid; then
+  pass "subgid mapping"
+else
+  fail "subgid mapping"
+fi
+
+# ----------------------------------------------------------------------
+# Foundry files
+# ----------------------------------------------------------------------
+
+for f in \
+  /etc/foundry/sandbox/policy.conf \
+  /opt/foundry/bin/foundry-run-job \
+  /opt/foundry/bin/foundry-job-create \
+  /opt/foundry/bin/foundry-stage-input \
+  /opt/foundry/bin/foundry-tree-hash
+do
+  if [ ! -e "$f" ]; then
+    fail "$f exists"
+    continue
+  fi
+
+  owner="$(stat -c '%U:%G' "$f")"
+
+  if [ "$owner" = "root:root" ]; then
+    pass "$f owned by root:root"
+  else
+    fail "$f owner is $owner"
+  fi
+
+  if [ -w "$f" ] && [ "$(stat -c '%U' "$f")" != "root" ]; then
+    fail "$f unexpectedly writable"
+  fi
+done
+
+# ----------------------------------------------------------------------
+# Root-owned policy
+# ----------------------------------------------------------------------
+
+POLICY=/etc/foundry/sandbox/policy.conf
+
+if [ -r "$POLICY" ]; then
+  # shellcheck disable=SC1090
+  source "$POLICY"
+
+  check_eq "NETWORK_MODE" "$NETWORK_MODE" "none"
+  check_eq "READ_ONLY_ROOT" "$READ_ONLY_ROOT" "true"
+  check_eq "DROP_ALL_CAPABILITIES" "$DROP_ALL_CAPABILITIES" "true"
+  check_eq "NO_NEW_PRIVILEGES" "$NO_NEW_PRIVILEGES" "true"
+  check_eq "RUN_AS_UID" "$RUN_AS_UID" "1002"
+  check_eq "RUN_AS_GID" "$RUN_AS_GID" "1002"
+  check_eq "USERNS_MODE" "$USERNS_MODE" "keep-id"
+  check_eq "MEMORY_LIMIT" "$MEMORY_LIMIT" "256M"
+  check_eq "PIDS_LIMIT" "$PIDS_LIMIT" "64"
+  check_eq "CPU_LIMIT" "$CPU_LIMIT" "0.5"
+
+  if [[ "$IMAGE" =~ @sha256:[0-9a-f]{64}$ ]]; then
+    pass "container image uses immutable SHA256 reference"
+  else
+    fail "container image is not digest-pinned: $IMAGE"
+  fi
+else
+  fail "policy readable"
+fi
+
+# ----------------------------------------------------------------------
+# SSH policy
+# ----------------------------------------------------------------------
+
+SSHD="$(sshd -T 2>/dev/null)"
+
+check_eq \
+  "SSH port" \
+  "$(awk '$1=="port"{print $2; exit}' <<<"$SSHD")" \
+  "2222"
+
+check_eq \
+  "SSH root login disabled" \
+  "$(awk '$1=="permitrootlogin"{print $2; exit}' <<<"$SSHD")" \
+  "no"
+
+check_eq \
+  "SSH public-key authentication enabled" \
+  "$(awk '$1=="pubkeyauthentication"{print $2; exit}' <<<"$SSHD")" \
+  "yes"
+
+check_eq \
+  "SSH password authentication disabled" \
+  "$(awk '$1=="passwordauthentication"{print $2; exit}' <<<"$SSHD")" \
+  "no"
+
+check_eq \
+  "SSH keyboard-interactive disabled" \
+  "$(awk '$1=="kbdinteractiveauthentication"{print $2; exit}' <<<"$SSHD")" \
+  "no"
+
+check_eq \
+  "SSH MaxAuthTries" \
+  "$(awk '$1=="maxauthtries"{print $2; exit}' <<<"$SSHD")" \
+  "6"
+
+# ----------------------------------------------------------------------
+# Firewall
+# ----------------------------------------------------------------------
+
+UFW="$(ufw status verbose 2>/dev/null)"
+
+if grep -q '^Status: active' <<<"$UFW"; then
+  pass "UFW active"
+else
+  fail "UFW active"
+fi
+
+if grep -q 'Default: deny (incoming), deny (outgoing)' <<<"$UFW"; then
+  pass "UFW default deny incoming/outgoing"
+else
+  fail "UFW default deny incoming/outgoing"
+fi
+
+if grep -Eq '^2222/tcp[[:space:]]+ALLOW IN' <<<"$UFW"; then
+  pass "SSH 2222/tcp permitted"
+else
+  fail "SSH 2222/tcp permitted"
+fi
+
+# ----------------------------------------------------------------------
+# External listeners
+# ----------------------------------------------------------------------
+
+BAD_LISTENERS="$(
+  ss -H -lntup 2>/dev/null |
+  awk '
+  {
+    addr=$5
+
+    # Allowed SSH listener.
+    if (addr ~ /:2222$/) next
+
+    # Allowed loopback/system resolver listeners.
+    if (addr ~ /^127\./) next
+    if (addr ~ /^\[::1\]:/) next
+
+    print
+  }'
+)"
+
+if [ -z "$BAD_LISTENERS" ]; then
+  pass "no unexpected externally reachable listeners"
+else
+  fail "unexpected listener(s) detected:"
+  printf '%s\n' "$BAD_LISTENERS"
+fi
+
+# ----------------------------------------------------------------------
+# Sandbox directories
+# ----------------------------------------------------------------------
+
+check_eq \
+  "evidence directory owner" \
+  "$(stat -c '%U:%G' /srv/foundry-sandbox/evidence)" \
+  "root:root"
+
+check_eq \
+  "evidence directory mode" \
+  "$(stat -c '%a' /srv/foundry-sandbox/evidence)" \
+  "700"
+
+check_eq \
+  "container-storage owner" \
+  "$(stat -c '%U:%G' /srv/foundry-sandbox/container-storage)" \
+  "foundry-exec:foundry-exec"
+
+check_eq \
+  "container-storage mode" \
+  "$(stat -c '%a' /srv/foundry-sandbox/container-storage)" \
+  "700"
+
+# ----------------------------------------------------------------------
+# Runtime / Podman
+# ----------------------------------------------------------------------
+
+install -d \
+  -m 0700 \
+  -o foundry-exec \
+  -g foundry-exec \
+  /run/user/1002
+
+PODMAN_ROOTLESS="$(
+  sudo -u foundry-exec \
+    env HOME=/home/foundry-exec XDG_RUNTIME_DIR=/run/user/1002 \
+    bash -c '
+      cd /home/foundry-exec
+      podman info --format "{{.Host.Security.Rootless}}"
+    ' 2>/dev/null ||
+    echo error
+)"
+
+check_eq \
+  "Podman is rootless for foundry-exec" \
+  "$PODMAN_ROOTLESS" \
+  "true"
+
+if sudo -u foundry-exec \
+     env HOME=/home/foundry-exec XDG_RUNTIME_DIR=/run/user/1002 \
+     bash -c '
+       cd /home/foundry-exec
+       podman image exists "$1"
+     ' bash "$IMAGE" >/dev/null 2>&1
+then
+  pass "pinned container image exists locally"
+else
+  fail "pinned container image unavailable locally"
+fi
+
+# ----------------------------------------------------------------------
+# Operational tooling
+# ----------------------------------------------------------------------
+
+for f in \
+  /opt/foundry/bin/foundry-sandbox-status \
+  /opt/foundry/bin/foundry-sandbox-recover \
+  /opt/foundry/bin/foundry-export-job \
+  /opt/foundry/bin/foundry-sandbox-verify
+do
+  if [ ! -e "$f" ]; then
+    fail "$f exists"
+    continue
+  fi
+
+  owner="$(stat -c '%U:%G' "$f")"
+
+  if [ "$owner" = "root:root" ]; then
+    pass "$f owned by root:root"
+  else
+    fail "$f owner is $owner"
+  fi
+
+  if bash -n "$f" >/dev/null 2>&1; then
+    pass "$f syntax"
+  else
+    fail "$f syntax"
+  fi
+done
+
+# ----------------------------------------------------------------------
+# Export boundary
+# ----------------------------------------------------------------------
+
+if getent group foundry-export >/dev/null 2>&1; then
+  pass "foundry-export group exists"
+else
+  fail "foundry-export group exists"
+fi
+
+EXPORT_OWNER="$(
+  stat -c '%U:%G' /srv/foundry-sandbox/export 2>/dev/null ||
+  echo missing
+)"
+
+check_eq \
+  "export directory owner" \
+  "$EXPORT_OWNER" \
+  "root:foundry-export"
+
+EXPORT_MODE="$(
+  stat -c '%a' /srv/foundry-sandbox/export 2>/dev/null ||
+  echo missing
+)"
+
+check_eq \
+  "export directory mode" \
+  "$EXPORT_MODE" \
+  "750"
+
+if id -nG foundry-exec 2>/dev/null | tr ' ' '\n' | grep -qx 'foundry-export'; then
+  fail "foundry-exec must not belong to foundry-export"
+else
+  pass "foundry-exec excluded from foundry-export"
+fi
+
+# Candidate account must not be able to traverse/read the export directory.
+if sudo -u foundry-exec \
+     env HOME=/home/foundry-exec \
+     bash -c 'cd /home/foundry-exec && test -r /srv/foundry-sandbox/export' \
+     >/dev/null 2>&1
+then
+  fail "foundry-exec can read export directory"
+else
+  pass "foundry-exec cannot read export directory"
+fi
+
+# ----------------------------------------------------------------------
+# Job recovery state
+# ----------------------------------------------------------------------
+
+set +e
+STATUS_OUTPUT="$(/opt/foundry/bin/foundry-sandbox-status 2>&1)"
+STATUS_RC=$?
+set -e
+
+if [ "$STATUS_RC" -eq 0 ] &&
+   grep -q '^STALE_RUNNING=0$' <<<"$STATUS_OUTPUT"; then
+  pass "no stale RUNNING jobs"
+else
+  fail "stale RUNNING job detected"
+  printf '%s\n' "$STATUS_OUTPUT"
+fi
+
+# ----------------------------------------------------------------------
+# Outbound host networking
+# ----------------------------------------------------------------------
+
+if timeout 3 bash -c 'echo >/dev/tcp/1.1.1.1/443' 2>/dev/null; then
+  fail "host outbound TCP connection succeeded"
+else
+  pass "host outbound TCP blocked"
+fi
+
+# ----------------------------------------------------------------------
+# Syntax validation
+# ----------------------------------------------------------------------
+
+if bash -n /opt/foundry/bin/foundry-run-job; then
+  pass "runner syntax"
+else
+  fail "runner syntax"
+fi
+
+if bash -n /opt/foundry/bin/foundry-job-create; then
+  pass "job-create syntax"
+else
+  fail "job-create syntax"
+fi
+
+if bash -n /opt/foundry/bin/foundry-stage-input; then
+  pass "stage-input syntax"
+else
+  fail "stage-input syntax"
+fi
+
+echo
+echo "=== RESULT ==="
+echo "PASS=$PASS"
+echo "FAIL=$FAIL"
+
+if [ "$FAIL" -eq 0 ]; then
+  echo "FOUNDRY_SANDBOX_BASELINE=PASS"
+  exit 0
+else
+  echo "FOUNDRY_SANDBOX_BASELINE=FAIL"
+  exit 1
+fi
