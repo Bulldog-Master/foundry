@@ -31,6 +31,12 @@ Foundry 1 remains a manually governed discipline. It permits manual experimental
 
 External tools such as Hermes may support bounded experiments and evidence collection, but they are not Foundry itself and their use does not adopt them as a Foundry agent framework. Foundry remains the authoritative governance and evidence system.
 
+`foundry-caller-1` is bounded production execution infrastructure for explicitly
+authorized evaluator jobs; its commissioned boundary is recorded in
+[`operations/foundry-caller-1/`](./operations/foundry-caller-1/). Caller-1 does
+not replace or acquire authority over Foundry governance, scoring, fusion,
+adjudication, founder approval, or sealed-truth controls.
+
 ## What Foundry contains
 
 Foundry holds two kinds of content, and the distinction matters.
