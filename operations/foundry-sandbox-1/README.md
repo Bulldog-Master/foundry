@@ -20,6 +20,9 @@ The source export was verified before import:
 server. The files under `bin/` and `config/` are content-identical copies of
 the verified production components.
 
+See [SECURITY-SCAN-FOLLOWUP.md](SECURITY-SCAN-FOLLOWUP.md) for the latest
+no-drift verification and deferred Baseline v2 security work.
+
 This package contains no secrets, private keys, authorized keys, tokens, job
 inputs, job outputs, or live evidence bundles.
 
