@@ -37,6 +37,8 @@ authorized evaluator jobs; its commissioned boundary is recorded in
 not replace or acquire authority over Foundry governance, scoring, fusion,
 adjudication, founder approval, or sealed-truth controls.
 
+A contained Foundry operational agent is commissioned for bounded implementation work; its current execution boundary is recorded in [`operations/foundry-agent/`](./operations/foundry-agent/). This does not automate Foundry gates or adopt a standing agent framework into Foundry doctrine.
+
 ## What Foundry contains
 
 Foundry holds two kinds of content, and the distinction matters.
