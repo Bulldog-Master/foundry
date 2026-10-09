@@ -23,6 +23,9 @@ the verified production components.
 See [SECURITY-SCAN-FOLLOWUP.md](SECURITY-SCAN-FOLLOWUP.md) for the latest
 no-drift verification and deferred Baseline v2 security work.
 
+See [AGENT-CONTAINMENT-OVERLAY.md](AGENT-CONTAINMENT-OVERLAY.md) for the
+post-freeze Agent Containment management-plane overlay record.
+
 This package contains no secrets, private keys, authorized keys, tokens, job
 inputs, job outputs, or live evidence bundles.
 
