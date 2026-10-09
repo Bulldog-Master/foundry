@@ -52,6 +52,7 @@ Caller-1 and the provider.
 - `PRODUCTION-CONTRACT-v1.md` records the six frozen production decisions.
 - `PRODUCTION-BASELINE.txt` records sanitized commissioning facts and hashes.
 - `FILES.sha256` authenticates the three substantive files in this package.
+- `AGENT-CONTAINMENT-OVERLAY.md` records the post-commission Agent Containment management-plane overlay.
 
 This package contains no credentials, private keys, live database contents,
 raw provider logs, evidence bundles, or sealed Run-008 truth.
