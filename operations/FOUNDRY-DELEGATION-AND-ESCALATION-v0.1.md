@@ -1,11 +1,12 @@
-# Foundry Delegation and Escalation v0.1
+# Foundry Delegation and Escalation v0.1.1
 
 - **Type:** Ratifiable operational policy
-- **Status:** ADOPTED — operational policy; Lane A is not activated
+- **Status:** v0.1 ADOPTED; v0.1.1 correction PENDING founder approval; Lane A is not activated
 - **Owner and final authority:** Bulldog (founder)
-- **Founder adoption:** APPROVED — founder review for PR #21
-- **Effective date:** 2026-10-09T20:43:03Z — policy only; not Lane A activation
-- **Ongoing independent verifier:** UNASSIGNED — founder must name an eligible independent human verifier before Lane A launch
+- **Founder adoption of v0.1:** APPROVED — directly confirmed by Bulldog for PR #21
+- **Effective date of v0.1:** 2026-10-09T20:43:03Z — policy only; not Lane A activation
+- **Founder approval of v0.1.1:** PENDING — must be directly recorded by Bulldog
+- **Ongoing independent verifier:** BLOCKED — founder must name an ADR-0002-qualified independent verifier before Lane A launch
 - **Review trigger:** Any firewall failure, stop-the-line event, material anomaly, verifier-independence change, or proposed scope expansion
 
 ## 1. Purpose and authority ceiling
@@ -30,6 +31,22 @@ branch; signing; sealed-truth custody; security exceptions; trust-boundary
 changes; and any other governance authority. An automated recommendation,
 default, timeout, confidence score, or absence of objection cannot substitute
 for the required human decision.
+
+### Founder-authority field invariant
+
+No agent, model, controller, script, workflow, or other automated actor may set,
+complete, pre-complete, or represent as decided any field asserting founder
+approval, adoption, override, activation, production promotion, or an equivalent
+founder act. Automated actors may prepare drafts and supporting evidence, but
+every such authority field must remain explicitly `PENDING` or `BLOCKED` until
+the founder's act is directly recorded.
+
+An account name, commit author, automation identity, prepared checkbox, inferred
+intent, prior general authorization, or absence of objection is not a directly
+recorded founder act. The authoritative record must identify the founder's
+specific act and its evidence without relying solely on an identity or field an
+automated actor could have written. This invariant does not disturb the valid
+v0.1 adoption recorded for PR #21, which Bulldog directly confirmed.
 
 ## 2. Lane A / Lane B structural firewall
 
@@ -77,8 +94,8 @@ Lane B matter and is outside this policy's standing delegation.
 Lane A must not launch until all of the following are recorded:
 
 1. The founder has adopted this exact version and supplied its effective date.
-2. The founder has named the ongoing independent human verifier and recorded the
-   verifier's independence basis under ADR-0002.
+2. The founder has named the ongoing independent verifier and recorded the
+   verifier's qualification and independence basis under ADR-0002.
 3. An independent pre-launch firewall verification has demonstrated that Lane A
    cannot exercise Lane B authority, including negative tests for every reserved
    authority in Section 1.
@@ -203,22 +220,25 @@ under this policy silently raises that ceiling.
 
 ## 10. Adoption record
 
-Founder adoption makes this document the operational policy. It does not
-activate Lane A. Lane A may become active only when every activation field below
-is completed in the merged authoritative record:
+Founder adoption made v0.1 the operational policy. The v0.1.1 correction does
+not become authoritative until the founder directly approves it, and neither
+version activates Lane A. Lane A may become active only when every activation
+field below is completed in the merged authoritative record:
 
 | Field | Required value |
 | --- | --- |
 | Adopted policy version/hash | v0.1; final SHA-256 recorded in PR #21 |
-| Founder adoption decision | APPROVED by Bulldog; Lane A activation explicitly withheld |
-| Adoption record | PR #21 founder review and merge approval |
-| Effective date and time | 2026-10-09T20:43:03Z (policy only) |
-| Named ongoing independent verifier | BLOCKED — not yet named |
+| Founder adoption decision for v0.1 | APPROVED by Bulldog; directly reconfirmed; Lane A activation explicitly withheld |
+| Adoption record for v0.1 | PR #21 founder review and merge approval; subsequent direct founder confirmation |
+| Effective date and time for v0.1 | 2026-10-09T20:43:03Z (policy only) |
+| v0.1.1 correction approval | PENDING — must be directly recorded by Bulldog |
+| Named ongoing independent verifier | BLOCKED — not yet named or qualified under ADR-0002 |
 | Verifier independence record | BLOCKED — not yet supplied |
 | Pre-launch firewall verification | BLOCKED — not yet performed/recorded |
 | Authorized Lane A implementation/envelope | BLOCKED — not yet authorized |
 | Audit and result-retention controls | BLOCKED — not yet independently verified |
 
-Until every activation field is complete, this adopted policy grants no standing
-Lane A authority. The controller design remains design-only, and none of the
-reserved Lane B authorities in Section 1 is authorized or automated.
+Until every activation field is complete, the adopted v0.1 policy and this
+pending correction grant no standing Lane A authority. The controller design
+remains design-only, and none of the reserved Lane B authorities in Section 1
+is authorized or automated.
