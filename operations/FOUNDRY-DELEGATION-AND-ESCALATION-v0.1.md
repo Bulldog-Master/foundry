@@ -1,11 +1,12 @@
 # Foundry Delegation and Escalation v0.1.1
 
 - **Type:** Ratifiable operational policy
-- **Status:** v0.1 ADOPTED; v0.1.1 correction PENDING founder approval; Lane A is not activated
+- **Status:** v0.1 ADOPTED; v0.1.1 APPROVED pending integrity-record closure; Lane A is not activated
 - **Owner and final authority:** Bulldog (founder)
 - **Founder adoption of v0.1:** APPROVED — directly confirmed by Bulldog for PR #21
 - **Effective date of v0.1:** 2026-10-09T20:43:03Z — policy only; not Lane A activation
-- **Founder approval of v0.1.1:** PENDING — must be directly recorded by Bulldog
+- **Founder approval of v0.1.1:** APPROVED — Bulldog's direct PR #23 review and comment on 2026-10-09
+- **Effective date of v0.1.1:** Upon founder merge of the exact independently reviewed integrity-closure PR; policy only, not Lane A activation
 - **Ongoing independent verifier:** BLOCKED — founder must name an ADR-0002-qualified independent verifier before Lane A launch
 - **Review trigger:** Any firewall failure, stop-the-line event, material anomaly, verifier-independence change, or proposed scope expansion
 
@@ -220,10 +221,14 @@ under this policy silently raises that ceiling.
 
 ## 10. Adoption record
 
-Founder adoption made v0.1 the operational policy. The v0.1.1 correction does
-not become authoritative until the founder directly approves it, and neither
-version activates Lane A. Lane A may become active only when every activation
-field below is completed in the merged authoritative record:
+Founder adoption made v0.1 the operational policy. Bulldog directly approved
+the v0.1.1 substance in PR #23 while explicitly preserving Lane A inactivity,
+all activation blockers, and the Hermes/controller and production-promotion
+prohibitions. The correction becomes authoritative only when the PR #22
+integrity record closes through founder merge of the exact independently
+reviewed integrity-closure PR. Neither version activates Lane A. Lane A may
+become active only when every activation field below is completed in the merged
+authoritative record:
 
 | Field | Required value |
 | --- | --- |
@@ -231,14 +236,15 @@ field below is completed in the merged authoritative record:
 | Founder adoption decision for v0.1 | APPROVED by Bulldog; directly reconfirmed; Lane A activation explicitly withheld |
 | Adoption record for v0.1 | PR #21 founder review and merge approval; subsequent direct founder confirmation |
 | Effective date and time for v0.1 | 2026-10-09T20:43:03Z (policy only) |
-| v0.1.1 correction approval | PENDING — must be directly recorded by Bulldog |
+| v0.1.1 correction approval | APPROVED — Bulldog's direct PR #23 review and comment, 2026-10-09T21:55:41Z / 2026-10-09T21:55:52Z |
+| v0.1.1 adoption record | PR #23 founder review and comment; effectiveness is conditional on founder merge of the exact independently reviewed integrity-closure PR |
 | Named ongoing independent verifier | BLOCKED — not yet named or qualified under ADR-0002 |
 | Verifier independence record | BLOCKED — not yet supplied |
 | Pre-launch firewall verification | BLOCKED — not yet performed/recorded |
 | Authorized Lane A implementation/envelope | BLOCKED — not yet authorized |
 | Audit and result-retention controls | BLOCKED — not yet independently verified |
 
-Until every activation field is complete, the adopted v0.1 policy and this
-pending correction grant no standing Lane A authority. The controller design
-remains design-only, and none of the reserved Lane B authorities in Section 1
-is authorized or automated.
+Until every activation field is complete, neither the adopted policy nor this
+correction grants standing Lane A authority. The controller design remains
+design-only, and none of the reserved Lane B authorities in Section 1 is
+authorized or automated.

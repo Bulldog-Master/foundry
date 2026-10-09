@@ -1,10 +1,10 @@
 # PR #22 Governance Integrity Record
 
-- **Status:** OPEN — corrective review and founder adoption are pending
+- **Status:** READY FOR CLOSURE — closes only on founder merge of the exact independently reviewed integrity-closure PR head
 - **Affected change:** PR #22, merge commit `531139a2af8439a2f7f9ef3aa9f155293bf3ce24`
 - **Affected policy:** `operations/FOUNDRY-DELEGATION-AND-ESCALATION-v0.1.md` (v0.1.1 candidate)
 - **Production effect:** None; Lane A remains inactive
-- **Authority effect:** The adopted v0.1 policy remains authoritative until this record is closed
+- **Authority effect:** The adopted v0.1 policy remains authoritative until this record closes; v0.1.1 becomes authoritative on closure without activating Lane A
 
 ## Finding
 
@@ -48,8 +48,32 @@ No automated actor may pre-complete items 2, 3, or 5. After the founder act in
 item 2 is directly recorded, an automated actor may mechanically reflect that
 act in the policy, but may not broaden or reinterpret it.
 
+## Corrective evidence received
+
+1. **Independent gates:** PR #23 records Architecture, Security and
+   Cryptography, and Privacy and Metadata as `Pass`, and Quality and
+   Verification as `Pass with conditions`, with an ADR-0002 independence
+   record for evaluator session `/root/pr22_independent_review`.
+2. **Hosted-fact confirmation and founder adoption:** Bulldog directly approved
+   the v0.1.1 substance and confirmed the PR #22 hosted-review facts in both a
+   PR #23 review at 2026-10-09T21:55:41Z and a comment at
+   2026-10-09T21:55:52Z. The statement explicitly kept Lane A inactive and
+   withheld Hermes/controller orchestration and production promotion.
+3. **Mechanical policy reflection:** The integrity-closure PR updates only the
+   v0.1.1 adoption and effectiveness fields necessary to cite that founder act;
+   all Lane A activation blockers remain `BLOCKED`.
+4. **Preserved boundaries:** `VERSION.md`, the Hermes/controller exclusions,
+   Section 5 human-only closure, and frozen Caller-1 and Sandbox-1 baselines
+   remain unchanged.
+5. **Final exact-commit review and merge:** PENDING until the integrity-closure
+   PR head receives focused independent re-review and Bulldog merges that exact
+   reviewed head.
+
 ## Closure rule
 
-Merge of this record without all required corrective evidence does not close
-it. Until closure, v0.1.1 remains a non-authoritative candidate on `main`, v0.1
-remains the adopted operational policy, and Lane A remains inactive.
+The earlier merge of this record without all required corrective evidence did
+not close it. This record closes only when Bulldog merges the exact final head
+of the integrity-closure PR after its focused independent re-review. That merge
+is the human closure act and makes v0.1.1 authoritative. It does not activate
+Lane A, authorize Hermes/controller orchestration, promote anything to
+production, or complete any Lane A activation blocker.
