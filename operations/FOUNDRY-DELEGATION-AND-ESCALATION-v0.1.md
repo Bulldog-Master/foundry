@@ -222,4 +222,3 @@ is completed in the merged authoritative record:
 Until every activation field is complete, this adopted policy grants no standing
 Lane A authority. The controller design remains design-only, and none of the
 reserved Lane B authorities in Section 1 is authorized or automated.
-
