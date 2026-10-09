@@ -16,6 +16,42 @@ Detailed machine baselines and version or provider specifics belong in the priva
 - Deployment: standalone machine.
 - Unrelated production or network services on this host are outside Hermes-lab authority and must not be modified. This is an operational prohibition, not a claim of OS- or container-enforced isolation unless separate evidence establishes that enforcement.
 
+## Foundry Agent containment
+
+As of 2026-10-09, Standalone also exposes a bounded management-plane path for
+the contained Foundry Agent. This does not make Standalone a Caller signing
+trust root, does not grant Foundry governance authority, and does not adopt
+Hermes as a Foundry orchestration framework.
+
+The dedicated `foundry-agent` account is separate from the existing
+administrative `standalone` account. It has no supplementary groups and is
+not a member of `sudo`, `docker`, `lxd`, or `ollama`.
+
+The agent has a private working directory at:
+
+- `/srv/hermes-lab/foundry-agent`
+
+The agent was granted bounded ACL access to these existing lab working areas:
+
+- `/srv/hermes-lab/repositories`
+- `/srv/hermes-lab/workspaces`
+- `/srv/hermes-lab/hermes-agent`
+- `/srv/hermes-lab/disposable-envs`
+
+The containment work did not grant the agent access to lab evidence custody,
+normal Hermes home/state, the Ollama model store, or unrelated host services.
+In particular, `/opt/xxnetwork` remains outside Foundry-Agent authority and a
+direct access test from the agent account was denied.
+
+SSH access uses the dedicated `foundry-agent` identity with a restricted
+authorized key. End-to-end access from the contained Foundry-Agent WSL
+environment was verified, including successful write access to the dedicated
+lab working area and denied access to `/opt/xxnetwork`.
+
+The local Ollama service remains bound to `127.0.0.1:11434`. The agent can
+query that local service, but it was not added to the Docker group and no
+general container-administration authority was granted.
+
 ## Storage
 
 The lab root is `/srv/hermes-lab`. Blinded evaluator environments and authorized evidence are kept separate from normal Hermes state and general lab workspaces beneath that root. Detailed storage and directory topology belongs in the private execution and evidence record.
