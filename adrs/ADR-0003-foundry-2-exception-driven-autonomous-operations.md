@@ -5,7 +5,7 @@
 - **Expires:** Does not expire
 - **Date:** 2026-10-09
 - **Author(s):** Bulldog-Master (founder), with AI-assisted coordination and independent review required before ratification
-- **Related:** ADR-0001, ADR-0002, VERSION.md, operations/FOUNDRY-DELEGATION-AND-ESCALATION-v0.1.md
+- **Related:** ADR-0001, ADR-0002, VERSION.md, operations/FOUNDRY-DELEGATION-AND-ESCALATION-v0.1.md, operations/PR-22-INTEGRITY-RECORD.md
 
 ## Context
 
@@ -20,6 +20,12 @@ Foundry 1 remains the frozen reference generation. Its production Caller-1 and S
 Foundry declares a proposed next generation, **Foundry 2**, whose standing operating model is exception-driven autonomous operations under the existing Constitution and ADR-0002 independence doctrine.
 
 Foundry 2 preserves the four mandatory gates from ADR-0001, builder/evaluator separation, failed-gate blocking, and founder override semantics. It supersedes only Foundry 1's manual-only operating assumption: gate invocation, evidence collection, deterministic routing, remediation loops, and routine operational progression may be automated so long as authority boundaries, evaluator independence, and evidence integrity remain enforceable and auditable.
+
+### Basis for declaring a new generation
+
+`VERSION.md` states that a new generation is declared when operating reality has materially changed, including when automation of any part of the gate contract becomes appropriate on evidence, or when the current operating model has demonstrably stopped fitting the work. This ADR relies on both: the founder is being used as a transport and approval surface for non-judgment steps (PR #22 and its integrity record are a worked example), and Foundry 1's explicit exclusions (no orchestration layer, no adopted agent framework, no automated gate runner) cannot be relaxed silently.
+
+Declaring the generation in this ADR is a proposal only. The evidence that automation is appropriate is produced by commissioning, and no automation is active until the founder activates it. Foundry 1's section of `VERSION.md`, including its exclusions, is not rewritten by this ADR.
 
 ### Autonomous-by-default operations
 
@@ -40,22 +46,31 @@ Automation must fail closed on ambiguity, drift, malformed evaluator output, mis
 
 ### Founder-reserved acts
 
-The following acts remain reserved to Bulldog and require a directly recorded founder act:
+The following global acts are reserved to Bulldog and require a directly recorded founder act:
 
-1. merge to a protected branch where the Constitution requires founder approval;
-2. production promotion;
-3. signing-key creation, use, rotation, revocation, or trust-root replacement where founder custody is required;
-4. new secrets or provider-credential authority;
-5. founder override of a failed gate or Security block;
-6. amendment of the Constitution or durable doctrine;
-7. authorization of a new Foundry product charter;
-8. material widening of an agent, controller, evaluator, or infrastructure trust boundary;
-9. release of sealed truth or material change to sealed-truth custody;
-10. change to this reserved-act list.
+1. **Merge to any protected branch.** Unconditional: not limited to cases where a rule happens to require it.
+2. **Production promotion**, including first activation of a new production runtime or production baseline.
+3. **Signing and trust-root authority:** signing-key creation, use, rotation, revocation, or replacement; creation of any GitHub App private key or other trust-root credential; installation of a GitHub App or any expansion of its permissions or repository access.
+4. **Foundry governance changes:** the Constitution; adoption or supersession of ADRs; `VERSION.md` generation or authority statements; gate definitions; this reserved-act list.
+5. **Founder override of a failed gate or Security block.** The underlying FAIL remains recorded.
+6. **Authority and trust-boundary widening:** any expansion of the reachable authority, credentials, systems, write paths, or privileged interfaces of an agent, controller, evaluator, planner, or infrastructure component. Creating a new work-envelope class (see below) is a widening.
+7. **Unresolved evaluator or Security conflict** that frozen deterministic evidence cannot resolve.
+8. **New secrets or provider authority:** a new provider; access by an actor to a new secret or credential class; material expansion of an existing provider authorization.
+9. **Sealed-truth authority:** releasing sealed truth; changing who may access it; changing its custody, recovery, or adjudication authority.
+10. **Authorization of a new Foundry product.** Foundry may prepare a charter automatically; adding a product to the governed portfolio is a founder decision.
+11. **Exceptional destructive or irreversible action** with meaningful blast radius that is not already explicitly authorized by a frozen, tested operational procedure.
+12. **Closing a hard stop** raised for an integrity anomaly, trust-boundary defect, or Security block, and resuming after a PAUSE/KILL. Ordinary implementation-defect remediation loops are not hard stops and are not reserved.
+13. **Alteration, deletion, or retention-policy change of authoritative audit or evidence records.**
 
-No model, controller, workflow, timeout, default, silence, or second account controlled by the same human may substitute for these acts.
+Product charters may add product-specific reserved acts without amending this ADR (for example contracts or legal commitments, spending above an approved envelope, public launch). A product charter may add reserved acts but may never remove or narrow a global one.
 
-Agents may draft founder-controlled fields only as `PENDING` or `BLOCKED`. They may never set or pre-complete approval, adoption, override, activation, promotion, or equivalent founder-attestation fields.
+**Closed-list rule.** Any action that is not on the global list, not added as a product-specific reserved act, not stopped by a frozen fail-closed rule, and inside a controller-validated work envelope of a ratified class is automatable. Everything else is not.
+
+**Directly recorded founder act.** A founder act is valid only if it is performed in the founder's own authenticated interactive session, or signed with a key held in founder custody that no agent, controller, or planner can use, and is recorded in a form that distinguishes it from agent-originated actions. No agent, controller, or planner may hold credentials for `Bulldog-Master` or `Bulldog-z`. Automated actors must publish under their own distinct identities. A second account controlled by the same human is neither an independent evaluator nor a founder act. The specific mechanism is selected and proven during commissioning; until it is, no Foundry 2 reserved act may be treated as satisfied.
+
+No model, controller, workflow, timeout, default, silence, or retry may substitute for any reserved act.
+
+Agents may draft founder-controlled fields only as `PENDING` or `BLOCKED`. They may never set or pre-complete approval, adoption, override, activation, promotion, or equivalent founder-attestation fields. After a founder act is directly recorded, an automated actor may mechanically reflect it without broadening or reinterpreting it.
 
 ### Evaluator independence and evidence
 
@@ -79,7 +94,19 @@ A deterministic controller enforces work envelopes, allowed actions, reserved ac
 
 Planning or orchestration tools such as Hermes may decompose and sequence work only inside a controller-approved envelope. They are not governance authority and cannot widen their own scope.
 
+Work envelopes are instantiated only from **envelope classes** that the founder has ratified. The Foundry Lead role may instantiate an envelope within a ratified class and may never create or widen a class. This keeps "authorized envelope" from becoming a path by which an AI coordination role expands authority incrementally.
+
 Security and Evaluation return structured authoritative routing fields. The controller routes mechanically on those fields and must not infer authority from free-form prose.
+
+### Publishing identities and review binding
+
+Automated actors publish to GitHub only through their own distinct identities, such as a `foundry-evaluator` GitHub App for reviews and status checks and a separate worker identity for branches and commits. The evaluator identity is a publishing identity. Evaluator independence under ADR-0002 belongs to the evaluator invocation behind it, not to the account.
+
+- The evaluator never holds the App private key. A separate deterministic publisher in the controller's trust root validates the review record and posts it.
+- The controller, not the evaluator, constructs the independence record from observable invocation facts.
+- A review record binds at least: PR number, exact head SHA, review-packet SHA-256, evaluator identity and model, evaluator configuration hash, independence record, four gate verdicts, finding IDs, category, severity, routing, `requires_human`, and review-artifact hash.
+- The publisher refuses to post a PASS if the record's head SHA differs from the PR's current head. The head SHA is re-checked when a review is accepted and immediately before `FOUNDER_ACTION_REQUIRED` is emitted. A later push makes the review stale and triggers a fresh one.
+- The evaluator identity must be unable to merge, push, create or update branches, modify branch protection, access secrets, or set founder-controlled fields. This is proven on a test PR during commissioning, not assumed from the permission list.
 
 ### Product-neutral operation
 
@@ -110,6 +137,10 @@ Activation requires a commissioning record showing, at minimum:
 - PAUSE/KILL or equivalent human emergency control;
 - rollback/recovery procedure;
 - shadow-mode evidence against real product work;
+- proof on a test PR that the evaluator identity can post a review and status check but cannot merge, push, or alter protection, and that branch protection trusts the intended mechanism;
+- proof that stale-head reviews are refused at publication and before founder notification;
+- selection and proof of the founder-act mechanism, and proof that no automated actor holds founder credentials;
+- ratified envelope classes for the first authorized workstream;
 - explicit founder activation decision.
 
 ## Consequences
