@@ -1,10 +1,10 @@
 # Foundry Delegation and Escalation v0.1
 
 - **Type:** Ratifiable operational policy
-- **Status:** PROPOSED — no standing authority until founder adoption and merge
+- **Status:** ADOPTED — operational policy; Lane A is not activated
 - **Owner and final authority:** Bulldog (founder)
-- **Founder adoption:** PENDING — must be recorded explicitly
-- **Effective date:** NOT EFFECTIVE — set only upon founder adoption
+- **Founder adoption:** APPROVED — founder review for PR #21
+- **Effective date:** 2026-10-09T20:43:03Z — policy only; not Lane A activation
 - **Ongoing independent verifier:** UNASSIGNED — founder must name an eligible independent human verifier before Lane A launch
 - **Review trigger:** Any firewall failure, stop-the-line event, material anomaly, verifier-independence change, or proposed scope expansion
 
@@ -203,19 +203,23 @@ under this policy silently raises that ceiling.
 
 ## 10. Adoption record
 
-This policy becomes effective only when all fields below are completed in the
-merged authoritative record:
+Founder adoption makes this document the operational policy. It does not
+activate Lane A. Lane A may become active only when every activation field below
+is completed in the merged authoritative record:
 
 | Field | Required value |
 | --- | --- |
-| Adopted policy version/hash | Exact version and cryptographic hash |
-| Founder adoption decision | Explicit approval by Bulldog |
-| Adoption record | PR/decision reference |
-| Effective date and time | Explicit UTC timestamp |
-| Named ongoing independent verifier | Identified eligible independent human; role may also be recorded |
-| Verifier independence record | ADR-0002 evidence reference |
-| Pre-launch firewall verification | Result/evidence reference |
-| Authorized Lane A implementation/envelope | Exact version/hash and scope |
+| Adopted policy version/hash | v0.1; final SHA-256 recorded in PR #21 |
+| Founder adoption decision | APPROVED by Bulldog; Lane A activation explicitly withheld |
+| Adoption record | PR #21 founder review and merge approval |
+| Effective date and time | 2026-10-09T20:43:03Z (policy only) |
+| Named ongoing independent verifier | BLOCKED — not yet named |
+| Verifier independence record | BLOCKED — not yet supplied |
+| Pre-launch firewall verification | BLOCKED — not yet performed/recorded |
+| Authorized Lane A implementation/envelope | BLOCKED — not yet authorized |
+| Audit and result-retention controls | BLOCKED — not yet independently verified |
 
-Until every required field is complete, this document is a proposal and grants
-no standing Lane A authority.
+Until every activation field is complete, this adopted policy grants no standing
+Lane A authority. The controller design remains design-only, and none of the
+reserved Lane B authorities in Section 1 is authorized or automated.
+
