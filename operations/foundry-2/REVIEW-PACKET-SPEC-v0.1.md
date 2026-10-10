@@ -82,7 +82,7 @@ Schema-enforced where expressible, and otherwise controller-enforced as invalidi
 
 The result contains no model identity, session, configuration, or independence claims. Those are not the evaluator's to author.
 
-The controller-design document currently requires `reviewer_identity` and `independence_record` in the structured Security/Evaluation result. This draft proposes relocating them into the controller-authored invocation record because the evaluator must not attest to its own identity or independence. The concurrent proposal is `operations/FOUNDRY-2-CONTROLLER-DESIGN-AMENDMENT-0001.md`. It is **not effective authority**: commissioning is blocked until the founder ratifies it. Until then, the governing controller design wins and this schema cannot be commissioned.
+The controller-design document currently requires `reviewer_identity` and `independence_record` in the structured Security/Evaluation result. This draft proposes relocating them into the controller-authored invocation record because the evaluator must not attest to its own identity or independence. The founder ratified this interpretation in `operations/FOUNDRY-2-CONTROLLER-DESIGN-AMENDMENT-0001.md`. That ratification resolves only authorship and placement of the two fields; it does not ratify ADR-0003, approve commissioning, authorize implementation, or activate Foundry 2.
 
 ## 7. Invocation record (controller-authored)
 
