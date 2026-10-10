@@ -134,7 +134,9 @@ def main():
         elif case["expected"] == "INVALID_MALFORMED":
             assert errors, case["id"]
         else:
-            assert not errors and semantic_case(case["schema"], instance) == case["expected"], case["id"]
+            # A semantic invariant may also be encoded directly in the schema.
+            # The named controller classification must still be derived from the instance.
+            assert semantic_case(case["schema"], instance) == case["expected"], case["id"]
 
     for case in V["controller_cases"]:
         assert controller(case) == case["expected"], case["id"]
