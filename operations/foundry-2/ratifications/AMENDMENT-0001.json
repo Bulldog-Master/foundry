@@ -1,0 +1,13 @@
+{
+  "artifact_schema_version": "0.1",
+  "amendment_id": "0001",
+  "amendment_sha256": "c74befb7587c866cffb06f9214b4c4ec5434395dcdbf99ca4dc725f5a5352d60",
+  "subject_pull_request": 26,
+  "subject_head_sha": "70c0f9918e3ebebe13656b11b03ae43ee7a978dd",
+  "founder_identity": "github:Bulldog-Master",
+  "decision": "RATIFY",
+  "recorded_at": "2026-10-10T23:34:56Z",
+  "evidence_ref": "founder-authenticated statement in the originating Codex task plus final GitHub protected-main merge",
+  "founder_statement": "I explicitly ratify Amendment 0001 at SHA-256 c74befb7587c866cffb06f9214b4c4ec5434395dcdbf99ca4dc725f5a5352d60, adopting the combined authoritative review-record interpretation. I authorize Codex to prepare and publish the separate founder-ratification PR for my final merge. This does not ratify ADR-0003, activate Foundry 2, merge PR #26, or override any evaluator gate.",
+  "effect": "This record has no governing authority while it remains only on a proposal branch. It becomes the founder-controlled ratification act only when Bulldog-Master personally merges this proposal into the protected main branch through GitHub."
+}
