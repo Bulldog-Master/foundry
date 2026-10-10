@@ -2,13 +2,12 @@
 """foundry-evaluator-invoke -- BOOTSTRAP-0 v0.1
 
 One-shot evaluator invoker for the Foundry 2 review-packet contract
-(operations/foundry-2/REVIEW-PACKET-SPEC-v0.1.md).  Installed root-owned (0755) and run as the unprivileged user `foundry-evaluator`,
-launched by the founder from the Windows side (`wsl -u foundry-evaluator -- ...`).
-No sudoers rule is involved.  The agent user (foundry-agent) can neither read the
-API credential nor write the evidence this script produces.
+(operations/foundry-2/REVIEW-PACKET-SPEC-v0.1.md).  Installed root-owned (0755) and invoked as root for BOOTSTRAP-0 only, launched by the founder from the Windows side (`wsl -d Foundry-Agent -u root -- ...`).
+No sudoers rule is involved. The agent user (foundry-agent) can neither read the
+API credential, invoke the provider through this bootstrap path, nor write the evidence this script produces.
 
 BOOTSTRAP-0 limits: uncommissioned code, stdlib validation only, not Foundry 2
-commissioning evidence.  Usage: foundry-evaluator-invoke <packet_dir>
+commissioning evidence. Foundry-Agent autonomous invocation is not authorized by this bootstrap artifact. Usage: foundry-evaluator-invoke <packet_dir>
 Takes exactly one argument.  No environment variables are read.  No tools and no
 network are offered to the model.
 """
