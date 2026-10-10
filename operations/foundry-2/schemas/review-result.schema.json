@@ -22,9 +22,10 @@
         "na_reason": { "type": "string", "minLength": 1 }
       },
       "allOf": [
-        { "if": { "properties": { "verdict": { "const": "N/A" } } }, "then": { "required": ["na_reason"] } },
-        { "if": { "properties": { "verdict": { "const": "PASS_WITH_CONDITIONS" } } }, "then": { "required": ["conditions"], "properties": { "conditions": { "minItems": 1 } } } },
-        { "if": { "properties": { "verdict": { "const": "FAIL" } } }, "then": { "properties": { "finding_ids": { "minItems": 1 } } } }
+        { "if": { "properties": { "verdict": { "const": "N/A" } } }, "then": { "required": ["na_reason"], "properties": { "finding_ids": { "maxItems": 0 } } }, "else": { "not": { "required": ["na_reason"] } } },
+        { "if": { "properties": { "verdict": { "const": "PASS_WITH_CONDITIONS" } } }, "then": { "required": ["conditions"], "properties": { "conditions": { "minItems": 1 } } }, "else": { "not": { "required": ["conditions"] } } },
+        { "if": { "properties": { "verdict": { "const": "FAIL" } } }, "then": { "properties": { "finding_ids": { "minItems": 1 } } } },
+        { "if": { "properties": { "verdict": { "const": "PASS" } } }, "then": { "properties": { "finding_ids": { "maxItems": 0 } } } }
       ]
     }
   },

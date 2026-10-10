@@ -36,9 +36,12 @@
         "host_id": { "type": "string" }
       }
     },
-    "accessible_context": { "type": "array", "items": { "type": "string" } },
-    "tools_available": { "type": "array", "items": { "type": "string" } },
-    "network_policy": { "enum": ["none", "allowlist"] },
+    "accessible_context": {
+      "type": "array", "uniqueItems": true,
+      "items": { "enum": ["pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured"] }
+    },
+    "tools_available": { "type": "array", "maxItems": 0 },
+    "network_policy": { "const": "none" },
     "credentials_present": { "type": "array", "maxItems": 0 },
     "prior_exposure": {
       "type": "object", "additionalProperties": false,

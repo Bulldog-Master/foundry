@@ -7,7 +7,7 @@
   "required": [
     "packet_schema_version", "packet_id", "repository", "pr_number",
     "base_ref", "base_sha", "merge_base_sha", "head_repository", "head_sha",
-    "changed_files", "diff", "governance_refs", "evaluator_task",
+    "changed_files", "diff", "governance_profile_sha256", "governance_refs", "evaluator_task",
     "allowed_context", "prohibited_context", "review_round",
     "producer_identity", "completeness", "members",
     "packet_created_at", "packet_sha256"
@@ -63,8 +63,9 @@
         "flags": { "type": "array", "items": { "type": "string" } }
       }
     },
+    "governance_profile_sha256": { "$ref": "#/$defs/sha256" },
     "governance_refs": {
-      "type": "array",
+      "type": "array", "minItems": 1,
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["path", "role", "source_sha", "sha256", "member"],
@@ -116,7 +117,8 @@
         }
       },
       "if": { "properties": { "round": { "const": 1 } } },
-      "then": { "properties": { "prior_packet_sha256": { "type": "null" }, "prior_findings": { "maxItems": 0 } } }
+      "then": { "properties": { "prior_packet_sha256": { "type": "null" }, "prior_findings": { "maxItems": 0 } } },
+      "else": { "properties": { "prior_packet_sha256": { "$ref": "#/$defs/sha256" }, "prior_findings": { "minItems": 1 } } }
     },
     "producer_identity": {
       "type": "object", "additionalProperties": false,
