@@ -225,8 +225,9 @@ def main(argv):
         if sha(task) != manifest["evaluator_task"]["sha256"]:
             raise Reject("installed evaluator task hash differs from the packet's evaluator_task.sha256")
         cfg = json.loads(read_regular(CONFIG_FILE).decode())
-        if set(cfg) != {"model", "max_tokens"} or not isinstance(cfg["model"], str) or not isinstance(cfg["max_tokens"], int):
-            raise Reject("config.json must contain exactly model and max_tokens")
+        if (set(cfg) != {"model", "max_tokens", "effort"} or not isinstance(cfg["model"], str)
+                or not isinstance(cfg["max_tokens"], int) or cfg["effort"] not in {"low", "medium", "high", "xhigh", "max"}):
+            raise Reject("config.json must contain exactly model, max_tokens, and a valid effort")
         key = read_regular(KEY_FILE).decode().strip()
     except (Reject, ValueError, KeyError, TypeError, OSError, UnicodeDecodeError) as e:
         print("REJECTED: %s" % e, file=sys.stderr)
@@ -256,7 +257,8 @@ def main(argv):
 
     user_content = json.dumps({"manifest": manifest, "members": members}, ensure_ascii=False)
     body = {"model": cfg["model"], "max_tokens": cfg["max_tokens"], "system": task.decode("utf-8"),
-            "messages": [{"role": "user", "content": user_content}]}
+            "messages": [{"role": "user", "content": user_content}],
+            "output_config": {"effort": cfg["effort"]}}
     started = now()
     req = urllib.request.Request(API_URL, data=json.dumps(body).encode("utf-8"), method="POST", headers={
         "x-api-key": key, "anthropic-version": API_VERSION, "content-type": "application/json"})
@@ -280,7 +282,8 @@ def main(argv):
 
     put("raw-response.json", raw)
     put("request-meta.json", jcs({"model": cfg["model"], "max_tokens": cfg["max_tokens"],
-                                  "system_prompt_sha256": sha(task), "user_content_sha256": sha(user_content.encode())}))
+                                  "effort": cfg["effort"], "system_prompt_sha256": sha(task),
+                                  "user_content_sha256": sha(user_content.encode())}))
     observed_model, validation, errors, result, routing_check = cfg["model"], "INVALID_MALFORMED", [], None, "NOT_APPLICABLE"
     try:
         api = json.loads(raw.decode("utf-8"))

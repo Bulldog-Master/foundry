@@ -57,6 +57,10 @@ Evaluate top to bottom, first match wins:
 
 `overall` is `FAIL` if any gate is `FAIL`, else `PASS_WITH_CONDITIONS` if any gate is `PASS_WITH_CONDITIONS`, else `PASS`.
 
+## Output economy
+
+Use the minimum text needed to state each independently actionable finding. Do not repeat packet content, summarize files, narrate your reasoning, or duplicate a finding across gates. Limit `detail` to 1200 characters per finding and return no more than 16 findings; consolidate closely related evidence under one finding. These limits do not permit omitting a distinct material defect.
+
 ## Output
 
 Respond with **exactly one JSON object and nothing else**: no prose before or after, no markdown fences. Any other output is treated as malformed and the evaluation is invalid.

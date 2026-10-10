@@ -5,7 +5,7 @@ sha=lambda b:hashlib.sha256(b).hexdigest()
 jcs=lambda o:json.dumps(o,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()
 W=tempfile.mkdtemp(); ETC=W+"/etc"; RUNS=W+"/runs"; os.makedirs(ETC); os.makedirs(RUNS)
 TASK=b"TASK v0.1\n"; open(ETC+"/evaluator-task.md","wb").write(TASK)
-open(ETC+"/config.json","w").write(json.dumps({"model":"claude-opus-5-5","max_tokens":16000}))
+open(ETC+"/config.json","w").write(json.dumps({"model":"claude-opus-5-5","max_tokens":32000,"effort":"medium"}))
 open(ETC+"/api-key","w").write("sk-ant-TESTKEY\n")
 QUEUE=[]; SEEN=[]
 class H(http.server.BaseHTTPRequestHandler):
@@ -46,7 +46,9 @@ def check(name,cond):
 # 1 valid
 d,m=make_packet(); QUEUE.append(api(json.dumps(result(m))))
 rc,o,e=run(d); check("1 valid PASS -> exit 0",rc==0); check("1 key sent, no tools in request",SEEN[-1][0]=="sk-ant-TESTKEY" and "tools" not in SEEN[-1][1])
+check("1 effective token and effort controls sent",SEEN[-1][1]["max_tokens"]==32000 and SEEN[-1][1]["output_config"]=={"effort":"medium"})
 ad=RUNS+"/"+m["packet_sha256"]+"/attempt-1"
+meta=json.load(open(ad+"/request-meta.json")); check("1 request metadata records controls",meta["max_tokens"]==32000 and meta["effort"]=="medium")
 rec=json.load(open(ad+"/invocation-record.json")); jsonschema.Draft202012Validator(json.load(open(SCH+"/invocation-record.schema.json"))).validate(rec); check("1 invocation record validates against schema",True)
 jsonschema.Draft202012Validator(json.load(open(SCH+"/review-result.schema.json"))).validate(json.load(open(ad+"/result.json"))); check("1 result validates against schema",True)
 check("1 key not in any output file", all(b"TESTKEY" not in open(os.path.join(ad,f),"rb").read() for f in os.listdir(ad)))
