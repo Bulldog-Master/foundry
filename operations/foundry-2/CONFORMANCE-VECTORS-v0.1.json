@@ -1,17 +1,39 @@
 {
   "fixture_version": "0.1",
   "hash_provenance": [
-    { "implementation": "CPython 3 hashlib.sha256", "command": "python3 verify-conformance-v0.1.py --hash-only", "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423" },
-    { "implementation": "GNU coreutils sha256sum 9.1", "command": "printf '%s' '{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}' | sha256sum", "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423" }
+    {
+      "implementation": "CPython 3 hashlib.sha256",
+      "command": "python3 verify-conformance-v0.1.py --hash-only",
+      "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423"
+    },
+    {
+      "implementation": "GNU coreutils sha256sum 9.1",
+      "command": "printf '%s' '{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}' | sha256sum",
+      "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423"
+    }
   ],
   "canonical_json_vectors": [
     {
-      "input": { "n": 17, "b": "\"\\\n", "a": "é" },
+      "input": {
+        "n": 17,
+        "b": "\"\\\n",
+        "a": "é"
+      },
       "canonical_utf8": "{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}",
       "sha256": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423"
     },
     {
-      "input": { "😀": "astral", "a": [true, null, { "z": "\t", "é": "雪" }] },
+      "input": {
+        "😀": "astral",
+        "a": [
+          true,
+          null,
+          {
+            "z": "\t",
+            "é": "雪"
+          }
+        ]
+      },
       "canonical_utf8": "{\"a\":[true,null,{\"z\":\"\\t\",\"é\":\"雪\"}],\"😀\":\"astral\"}",
       "sha256": "0ad30f2873c37e666ffe14278179de8466e4af837b276bb97065b2a471656b4c"
     }
@@ -28,10 +50,22 @@
         "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "evaluator_task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "gates": {
-          "architecture": { "verdict": "PASS", "finding_ids": [] },
-          "security": { "verdict": "PASS", "finding_ids": [] },
-          "privacy": { "verdict": "PASS", "finding_ids": [] },
-          "quality": { "verdict": "PASS", "finding_ids": [] }
+          "architecture": {
+            "verdict": "PASS",
+            "finding_ids": []
+          },
+          "security": {
+            "verdict": "PASS",
+            "finding_ids": []
+          },
+          "privacy": {
+            "verdict": "PASS",
+            "finding_ids": []
+          },
+          "quality": {
+            "verdict": "PASS",
+            "finding_ids": []
+          }
         },
         "findings": [],
         "overall": "PASS",
@@ -40,11 +74,17 @@
       }
     },
     {
-      "id": "result-invalid-pass-with-finding",
+      "id": "result-invalid-derived-overall",
       "schema": "review-result.schema.json",
-      "expected": "INVALID_FINDING_INDEX",
+      "expected": "INVALID_DERIVED_OVERALL",
       "mutation_of": "result-valid-pass",
-      "patch": [{ "op": "replace", "path": "/overall", "value": "FAIL" }]
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/overall",
+          "value": "FAIL"
+        }
+      ]
     },
     {
       "id": "invocation-valid-isolated",
@@ -55,19 +95,36 @@
         "invocation_id": "00000000-0000-4000-8000-000000000001",
         "packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "result_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "evaluator": { "provider": "example", "model_id": "example", "config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
-        "environment": { "session_id": "example", "runtime_image_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "host_id": "example" },
-        "accessible_context": ["packet_manifest", "packet_members", "evaluator_task"],
+        "evaluator": {
+          "provider": "example",
+          "model_id": "example",
+          "config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "environment": {
+          "session_id": "example",
+          "runtime_image_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "host_id": "example"
+        },
+        "accessible_context": [
+          "packet_manifest",
+          "packet_members",
+          "evaluator_task"
+        ],
         "tools_available": [],
         "network_policy": "none",
         "credentials_present": [],
-        "prior_exposure": { "known_prior_sessions_on_this_pr": [], "knowable_limits": "none known" },
+        "prior_exposure": {
+          "known_prior_sessions_on_this_pr": [],
+          "knowable_limits": "none known"
+        },
         "attempt": 1,
         "started_at": "2026-01-01T00:00:00Z",
         "completed_at": "2026-01-01T00:00:01Z",
         "schema_validation": "VALID",
         "routing_check": "MATCHES_TABLE",
-        "review_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "review_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "raw_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
       }
     },
     {
@@ -76,9 +133,30 @@
       "expected": "INVALID_CONTEXT",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        { "op": "replace", "path": "/network_policy", "value": "unrestricted" },
-        { "op": "replace", "path": "/tools_available", "value": ["shell"] },
-        { "op": "replace", "path": "/credentials_present", "value": ["provider-key"] }
+        {
+          "op": "add",
+          "path": "/accessible_context/3",
+          "value": "prior_review"
+        },
+        {
+          "op": "replace",
+          "path": "/network_policy",
+          "value": "unrestricted"
+        },
+        {
+          "op": "replace",
+          "path": "/tools_available",
+          "value": [
+            "shell"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/credentials_present",
+          "value": [
+            "provider-key"
+          ]
+        }
       ]
     },
     {
@@ -88,28 +166,100 @@
       "instance": {
         "packet_schema_version": "0.1",
         "packet_id": "00000000-0000-4000-8000-000000000002",
-        "repository": { "owner": "example", "name": "repo", "repo_id": 1 },
+        "repository": {
+          "owner": "example",
+          "name": "repo",
+          "repo_id": 1
+        },
         "pr_number": 1,
         "base_ref": "main",
         "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "merge_base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "head_repository": { "owner": "example", "name": "repo", "repo_id": 1 },
+        "head_repository": {
+          "owner": "example",
+          "name": "repo",
+          "repo_id": 1
+        },
         "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "changed_files": [{ "path": "x.txt", "status": "added", "mode": "100644", "head_blob_sha": "cccccccccccccccccccccccccccccccccccccccc", "head_content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "size": 1, "member": "files/x.txt" }],
-        "diff": { "member": "diff.patch", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "git_version": "git version 2.53.0", "flags": ["--binary", "--no-ext-diff", "--no-textconv", "--full-index"] },
+        "changed_files": [
+          {
+            "path": "x.txt",
+            "status": "added",
+            "mode": "100644",
+            "head_blob_sha": "cccccccccccccccccccccccccccccccccccccccc",
+            "head_content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "size": 1,
+            "member": "files/x.txt"
+          }
+        ],
+        "diff": {
+          "member": "diff.patch",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "git_version": "git version 2.53.0",
+          "flags": [
+            "--binary",
+            "--no-ext-diff",
+            "--no-textconv",
+            "--full-index"
+          ]
+        },
         "governance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "governance_refs": [{ "path": "CONSTITUTION.md", "role": "governing", "source_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "member": "governance/base/CONSTITUTION.md" }],
+        "governance_refs": [
+          {
+            "path": "CONSTITUTION.md",
+            "role": "governing",
+            "source_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "member": "governance/base/CONSTITUTION.md"
+          }
+        ],
         "related_context_refs": [],
-        "evaluator_task": { "task_id": "example", "version": "0.1", "sha256": "2222222222222222222222222222222222222222222222222222222222222222" },
-        "allowed_context": ["packet_manifest", "packet_members", "evaluator_task"],
-        "prohibited_context": ["producer_self_assessment", "prior_findings_or_judgments", "network_access"],
-        "review_round": { "round": 1, "prior_packet_sha256": null },
-        "producer_identity": { "component": "foundry-packet-builder", "version": "0.1", "build_sha256": "3333333333333333333333333333333333333333333333333333333333333333" },
-        "completeness": { "complete": true, "truncated": false, "size_bytes": 3, "size_limit_bytes": 4000000 },
+        "evaluator_task": {
+          "task_id": "example",
+          "version": "0.1",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "allowed_context": [
+          "packet_manifest",
+          "packet_members",
+          "evaluator_task"
+        ],
+        "prohibited_context": [
+          "producer_self_assessment",
+          "prior_findings_or_judgments",
+          "network_access"
+        ],
+        "review_round": {
+          "round": 1,
+          "prior_packet_sha256": null
+        },
+        "producer_identity": {
+          "component": "foundry-packet-builder",
+          "version": "0.1",
+          "build_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "completeness": {
+          "complete": true,
+          "truncated": false,
+          "size_bytes": 3,
+          "size_limit_bytes": 4000000
+        },
         "members": [
-          { "name": "diff.patch", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "size": 1 },
-          { "name": "files/x.txt", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "size": 1 },
-          { "name": "governance/base/CONSTITUTION.md", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "size": 1 }
+          {
+            "name": "diff.patch",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "size": 1
+          },
+          {
+            "name": "files/x.txt",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "size": 1
+          },
+          {
+            "name": "governance/base/CONSTITUTION.md",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "size": 1
+          }
         ],
         "packet_created_at": "2026-01-01T00:00:00Z",
         "packet_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
@@ -121,29 +271,229 @@
       "expected": "INVALID_MALFORMED",
       "mutation_of": "packet-valid-shape",
       "patch": [
-        { "op": "replace", "path": "/changed_files/0/status", "value": "deleted" },
-        { "op": "add", "path": "/changed_files/0/base_blob_sha", "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+        {
+          "op": "replace",
+          "path": "/changed_files/0/status",
+          "value": "deleted"
+        },
+        {
+          "op": "add",
+          "path": "/changed_files/0/base_blob_sha",
+          "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
       ]
     }
   ],
   "controller_cases": [
-    { "id": "derived-overall-mismatch", "input": { "gate_verdicts": ["FAIL", "PASS", "PASS", "PASS"], "reported_overall": "PASS" }, "expected": "INVALID_DERIVED_OVERALL" },
-    { "id": "binding-mismatch", "input": { "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "result_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "INVALID_BINDING_MISMATCH" },
-    { "id": "member-hash-mismatch", "input": { "declared": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "observed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "INVALID_MEMBER_CROSS_REFERENCE" },
-    { "id": "evidence-member-missing", "input": { "evidence_member": "missing", "members": ["diff.patch"] }, "expected": "INVALID_EVIDENCE_REF" },
-    { "id": "context-mismatch", "input": { "allowed": ["packet_manifest", "packet_members", "evaluator_task"], "observed": ["packet_manifest", "packet_members", "evaluator_task", "other"] }, "expected": "INVALID_CONTEXT" },
-    { "id": "routing-mismatch", "input": { "derived": "HARD_STOP", "reported": "CONTINUE" }, "expected": "INVALID_ROUTING" },
-    { "id": "other-invalidity", "input": { "named_rule": "unclassified fail-closed invariant" }, "expected": "INVALID_OTHER" },
-    { "id": "first-invalid-clean", "input": { "attempt": 1, "parseable_adverse_signals": [] }, "expected": "RETRY_IDENTICAL" },
-    { "id": "first-invalid-adverse", "input": { "attempt": 1, "parseable_adverse_signals": ["security:FAIL"] }, "expected": "HARD_STOP" },
-    { "id": "second-invalid-attempt", "input": { "attempt": 2, "parseable_adverse_signals": [] }, "expected": "HARD_STOP" },
-    { "id": "stale-head", "input": { "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "current_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "RESEAL_NO_PUBLICATION" }
+    {
+      "id": "derived-overall-mismatch",
+      "input": {
+        "gate_verdicts": [
+          "FAIL",
+          "PASS",
+          "PASS",
+          "PASS"
+        ],
+        "reported_overall": "PASS"
+      },
+      "expected": "INVALID_DERIVED_OVERALL"
+    },
+    {
+      "id": "binding-mismatch",
+      "input": {
+        "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "result_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expected": "INVALID_BINDING_MISMATCH"
+    },
+    {
+      "id": "member-hash-mismatch",
+      "input": {
+        "declared": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expected": "INVALID_MEMBER_CROSS_REFERENCE"
+    },
+    {
+      "id": "evidence-member-missing",
+      "input": {
+        "evidence_member": "missing",
+        "members": [
+          "diff.patch"
+        ]
+      },
+      "expected": "INVALID_EVIDENCE_REF"
+    },
+    {
+      "id": "context-mismatch",
+      "input": {
+        "allowed": [
+          "packet_manifest",
+          "packet_members",
+          "evaluator_task"
+        ],
+        "observed": [
+          "packet_manifest",
+          "packet_members",
+          "evaluator_task",
+          "other"
+        ]
+      },
+      "expected": "INVALID_CONTEXT"
+    },
+    {
+      "id": "routing-mismatch",
+      "input": {
+        "derived": "HARD_STOP",
+        "reported": "CONTINUE"
+      },
+      "expected": "INVALID_ROUTING"
+    },
+    {
+      "id": "other-invalidity",
+      "input": {
+        "named_rule": "unclassified fail-closed invariant"
+      },
+      "expected": "INVALID_OTHER"
+    },
+    {
+      "id": "first-invalid-clean",
+      "input": {
+        "attempt": 1,
+        "parseable_adverse_signals": []
+      },
+      "expected": "RETRY_IDENTICAL"
+    },
+    {
+      "id": "first-invalid-adverse",
+      "input": {
+        "attempt": 1,
+        "parseable_adverse_signals": [
+          "security:FAIL"
+        ]
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "second-invalid-attempt",
+      "input": {
+        "attempt": 2,
+        "parseable_adverse_signals": []
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "stale-head",
+      "input": {
+        "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expected": "RESEAL_NO_PUBLICATION"
+    },
+    {
+      "id": "invalid-output-hash-retained",
+      "input": {
+        "schema_validation": "INVALID_MALFORMED",
+        "raw_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "result_sha256": null
+      },
+      "expected": "INVALID_OUTPUT_RETAINED"
+    }
   ],
   "routing_cases": [
-    { "input": { "categories": ["RESERVED_ACT_REQUIRED"], "security": "PASS", "severities": ["MAJOR"], "other_gates": ["FAIL"] }, "expected": ["ESCALATE_FOUNDER", true] },
-    { "input": { "categories": ["IMPLEMENTATION_DEFECT"], "security": "FAIL", "severities": ["MAJOR"], "other_gates": [] }, "expected": ["HARD_STOP", true] },
-    { "input": { "categories": ["SPEC_AMBIGUITY"], "security": "PASS", "severities": ["MINOR"], "other_gates": ["FAIL"] }, "expected": ["HARD_STOP", true] },
-    { "input": { "categories": ["IMPLEMENTATION_DEFECT"], "security": "PASS", "severities": ["MAJOR"], "other_gates": ["FAIL"] }, "expected": ["RETURN_TO_OPERATIONS", false] },
-    { "input": { "categories": [], "security": "PASS", "severities": [], "other_gates": [] }, "expected": ["CONTINUE", false] }
+    {
+      "input": {
+        "categories": [
+          "RESERVED_ACT_REQUIRED"
+        ],
+        "security": "PASS",
+        "severities": [
+          "MAJOR"
+        ],
+        "other_gates": [
+          "FAIL"
+        ]
+      },
+      "expected": [
+        "ESCALATE_FOUNDER",
+        true
+      ]
+    },
+    {
+      "input": {
+        "categories": [
+          "IMPLEMENTATION_DEFECT"
+        ],
+        "security": "FAIL",
+        "severities": [
+          "MAJOR"
+        ],
+        "other_gates": []
+      },
+      "expected": [
+        "HARD_STOP",
+        true
+      ]
+    },
+    {
+      "input": {
+        "categories": [
+          "SPEC_AMBIGUITY"
+        ],
+        "security": "PASS",
+        "severities": [
+          "MINOR"
+        ],
+        "other_gates": [
+          "FAIL"
+        ]
+      },
+      "expected": [
+        "HARD_STOP",
+        true
+      ]
+    },
+    {
+      "input": {
+        "categories": [
+          "IMPLEMENTATION_DEFECT"
+        ],
+        "security": "PASS",
+        "severities": [
+          "MAJOR"
+        ],
+        "other_gates": [
+          "FAIL"
+        ]
+      },
+      "expected": [
+        "RETURN_TO_OPERATIONS",
+        false
+      ]
+    },
+    {
+      "input": {
+        "categories": [],
+        "security": "PASS",
+        "severities": [],
+        "other_gates": []
+      },
+      "expected": [
+        "CONTINUE",
+        false
+      ]
+    },
+    {
+      "input": {
+        "categories": [],
+        "security": "N/A",
+        "severities": [],
+        "other_gates": []
+      },
+      "expected": [
+        "HARD_STOP",
+        true
+      ]
+    }
   ]
 }
