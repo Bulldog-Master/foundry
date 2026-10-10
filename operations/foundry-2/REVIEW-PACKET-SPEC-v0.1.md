@@ -4,7 +4,7 @@
 - **Scope:** Product-neutral contract for the frozen review packet, the evaluator result, and the controller-authored invocation record
 - **Authority:** Subordinate to ADR-0001, ADR-0002, `VERSION.md`, `operations/FOUNDRY-2-CONTROLLER-DESIGN-v0.1.md`, and `operations/FOUNDRY-2-COMMISSIONING-v0.1.md`; also subordinate to ADR-0003 only if ADR-0003 is ratified
 - **Machine-readable schemas:** `operations/foundry-2/schemas/review-packet.schema.json`, `review-result.schema.json`, `invocation-record.schema.json`
-- **Implementation:** No packet-builder code, evaluator adapter, publisher, or routing engine is authorized by this document. Implementation begins only after the commissioning scope is approved.
+- **Implementation:** No packet-builder code, evaluator adapter, publisher, or routing engine is authorized by this document. Implementation begins only after **both** ADR-0003 is ratified and a separate commissioning scope is approved.
 
 ## 1. Purpose
 
@@ -18,8 +18,11 @@ Every substantive PR is evaluated against a sealed, hash-bound packet that no pa
 | Evaluator (isolated Claude invocation) | Reads only the sealed packet; returns one schema-valid result | Hold GitHub or provider credentials; publish; author its own independence claims; select or extend its evidence |
 | Controller | Validates the result, checks bindings, derives routing, authors the invocation record | Infer authority from prose |
 | Publisher (`foundry-evaluator` GitHub App identity) | Verifies hashes and current head, then posts the check and review | Hold the App key anywhere the evaluator or Hermes can reach; post a PASS for a stale head |
+| Controller release custodian | Freezes the builder, task, schemas, governance profile, publisher, and their hashes after founder approval | Produce the subject change; evaluate it; alter a frozen release unilaterally |
 
 The packet builder reads GitHub with a read-only identity. It never uses `Bulldog-Master` or `Bulldog-z` credentials.
+
+The controller release custodian is a separately commissioned administrative role outside all producer workspaces and identities, including Codex, Hermes, and repository operators. Every release or profile change requires a founder-approved commissioning record naming the exact hashes; the custodian may install that approved release but has no policy discretion. The founder ratifies the initial trust anchor and every change to the evaluator task, governance profile, or trusted publisher identity.
 
 ## 3. Packet contents
 
@@ -32,12 +35,12 @@ A packet is a directory sealed by `manifest.json` plus members (files). The mani
 3. Governing references, read at **`base_sha`**, from the independently commissioned controller release profile (the allowlist of Constitution, ADR, `VERSION.md`, and operations paths that govern review). The profile and packet builder are frozen outside the subject repository before use. `governance_profile_sha256` binds the exact profile in the manifest; `producer_identity.build_sha256` binds the builder. A PR therefore cannot alter the rules or evidence-selection code by which it is judged.
 4. If the PR itself changes a governing file, the head version is also included with role `subject_head_version`, and the evaluator task states that the base version governs.
 5. The evaluator task (identity, version, hash). The instructions live in the versioned task, not in the packet.
-6. For re-review only: structured prior findings (ID, gate, severity, title, claimed remediation commit). No prior verdict prose.
+6. For re-review only: the prior packet hash and current round number. Prior findings, titles, verdicts, and other prior judgments are not disclosed to the evaluator. The new head and complete base-to-head diff are sufficient to evaluate the candidate afresh.
 
 **Excluded (prohibited context)**
 
 - Producer self-assessment of gate outcomes, and the PR body or comments as instructions. (If PR prose is ever needed, it is included only as a clearly delimited untrusted statement; v0.1 excludes it.)
-- Other evaluators' verdicts, and any verdict prose from earlier rounds.
+- Other evaluators' verdicts and all earlier findings, titles, judgments, and verdict prose.
 - Founder approval, adoption, override, or activation fields' state as an input to judgment.
 - Sealed truth, secrets, credentials.
 - Network access and repository access beyond the packet.
@@ -70,15 +73,15 @@ Schema-enforced where expressible, and otherwise controller-enforced as invalidi
 - `N/A` requires a specific `na_reason`.
 - `PASS_WITH_CONDITIONS` requires at least one recorded condition.
 - `FAIL` requires at least one finding.
-- Every finding carries `category`, `severity`, and at least one `evidence_ref` (path and line range).
+- Every finding carries `category`, `severity`, and at least one `evidence_ref` (exact packet-member name and line range). `diff.patch` is addressable like every other member. Repository paths are display-only metadata and never identify evidence.
 - Each finding ID resolves exactly once, uses the gate prefix (`ARCH`, `SEC`, `PRIV`, or `QUAL`), matches its finding's gate, and is listed by that gate; every finding is listed.
 - `PASS` and `N/A` carry no findings; `conditions` occurs only on `PASS_WITH_CONDITIONS`; `na_reason` occurs only on `N/A`.
-- Every evidence path is a packet member exposed for review, and `1 <= line_start <= line_end <= member line count`.
+- Every `evidence_ref.member` resolves exactly once in `members[]`, and `1 <= line_start <= line_end <= member line count`.
 - The controller derives `overall` from gate verdicts (`FAIL` if any gate fails, else `PASS_WITH_CONDITIONS` if any gate is conditional, else `PASS`) and invalidates a mismatch.
 
 The result contains no model identity, session, configuration, or independence claims. Those are not the evaluator's to author.
 
-This intentionally relocates `reviewer_identity` and `independence_record` from the earlier controller-design sketch into the controller-authored invocation record. The evaluator must not attest to its own identity or independence.
+The controller-design document currently requires `reviewer_identity` and `independence_record` in the structured Security/Evaluation result. This draft proposes relocating them into the controller-authored invocation record because the evaluator must not attest to its own identity or independence. That relocation is a declared design departure, **not effective authority**: commissioning is blocked until a concurrent founder-ratified amendment to the controller design authorizes it. Until then, the governing controller design wins.
 
 ## 7. Invocation record (controller-authored)
 
@@ -86,15 +89,15 @@ Built from observed facts: provider and model ID, effective configuration hash, 
 
 For a valid result, `result_sha256` is SHA-256 of the parsed result reserialized with the Foundry v0.1 canonical JSON profile. It is `null` only when no schema-valid result exists. `invocation_record_without_hash` is the complete invocation-record object with only `review_record_sha256` omitted. `review_record_sha256` is SHA-256 of the canonical JSON object with exactly the keys `packet_sha256`, `result_sha256`, and `invocation_record_without_hash`.
 
-Any non-empty `tools_available`, any `network_policy` other than `none`, any credential visible to the evaluator, or any `accessible_context` item outside the packet manifest's allowlist invalidates the evaluation and hard-stops. The provider credential belongs only to the controller transport boundary and is never evaluator-visible.
+The record schema can preserve observed violations: tool names, credentials, widened network state, and every invalidity class remain representable. For a valid run, `accessible_context` must be exactly the manifest, packet members, and evaluator task declared by the packet allowlist; `tools_available` and `credentials_present` must be empty; and `network_policy` must be `none`. Any deviation invalidates the evaluation. The provider credential belongs only to the controller transport boundary and is never evaluator-visible.
 
 ## 7.1 ADR-0002 Decisions 1–5
 
 1. **Non-interactive independence.** The evaluator receives one sealed packet and returns one JSON document. It has no repository, GitHub, controller, publisher, or remediation-loop channel.
 2. **No self-asserted independence.** The controller release owner freezes the task and profile outside the subject repository; their hashes are bound into the packet and invocation record. The evaluator supplies neither identity nor independence claims.
 3. **Verified isolation.** Commissioning captures effective provider request configuration, tool count, network policy, credential visibility, accessible-context enumeration, runtime hash, filesystem ownership/modes, and negative probes. A missing or widened observation invalidates the run.
-4. **Prior-exposure eligibility.** Round 1 has no prior findings. A later round names the prior packet and supplies only structured findings. The invocation record lists known prior sessions and knowability limits. Undisclosed known exposure or prior verdict prose invalidates the run; exposure outside what can be known routes `ESCALATE_FOUNDER` when it could materially compromise independence.
-5. **Minimum bounded context.** The packet contains only the exact diff, changed-file contents, frozen governing references, task binding, and—on re-review—structured prior findings. Completeness is fail-closed, and no network or repository expansion is permitted.
+4. **Prior-exposure eligibility.** A later round names the prior packet but supplies no prior findings or judgments. The invocation record lists known prior sessions and knowability limits. Known prior-judgment exposure or materially unresolved exposure makes the run ineligible and hard-stops before publication.
+5. **Minimum bounded context.** The packet contains only the manifest, exact diff, changed-file contents, frozen governing references, and task binding. Completeness is fail-closed, and no network, repository expansion, or prior judgment is permitted.
 
 ## 8. Deterministic routing
 
@@ -110,6 +113,8 @@ The controller derives routing from the structured result using this frozen tabl
 
 A Security `FAIL` blocks regardless of other gates. If ADR-0003 is ratified, closing that hard stop is its reserved act 12; an override remains a separate reserved act. Automated remediation may prepare a new commit, but it does not itself close the Security hard stop. Multiple-evaluator disagreement is out of scope and has no derivation rule in v0.1.
 
+Controller-side outcomes are also deterministic and are evaluated before the result table: an ineligible evaluator, unresolved material prior exposure, packet/profile/member failure, widened context, tools, network, credentials, or a second invalid response produces `HARD_STOP`, requires a human, and publishes `action_required`; a first malformed or invalid response produces no verdict and exactly one identical retry; a stale head produces no publication and a newly sealed packet. These are controller outcomes, never evaluator-authored routing values.
+
 ## 9. Malformed, mismatched, or stale results
 
 - Schema-invalid; binding mismatch; derived-overall mismatch; finding/gate/ID mismatch; invalid evidence path or line range; widened context, tools, network, or credentials; packet member/profile cross-reference failure; or routing mismatch: the result is **invalid**, never reinterpreted or repaired.
@@ -122,20 +127,20 @@ A Security `FAIL` blocks regardless of other gates. If ADR-0003 is ratified, clo
 
 The publisher validates: result schema, `packet_sha256` against the stored sealed packet, `review_record_sha256`, routing check, and current head. Then it posts as `foundry-evaluator`:
 
-- a check run, `foundry/four-gate`: `success` only when overall is `PASS` and the head is current; otherwise `failure` or `action_required`;
+- a check run, `foundry/four-gate`: `success` only for a current-head valid `PASS / CONTINUE`; `failure` for any valid `FAIL`, `PASS_WITH_CONDITIONS`, `RETURN_TO_OPERATIONS`, or evaluator-derived `HARD_STOP`; and `action_required` for controller-side invalidity, independence hard stop, or `ESCALATE_FOUNDER`;
 - a review rendered by a fixed template from the structured result. `PASS` maps to `APPROVE`; every other overall/routing state maps to `REQUEST_CHANGES`. Evaluator prose appears only as quoted data and is never interpreted.
 
 The publisher also verifies that every `changed_files[].member`, `diff.member`, and `governance_refs[].member` resolves exactly once in `members[]` with matching hashes and sizes; that `governance_refs` is non-empty; and that every changed governing path has both its base-governing and `subject_head_version` entries. Failure is invalid and no success or approval is posted.
 
 Published GitHub output contains the gate verdicts, structured findings, routing, head SHA, packet hash, result hash, and review-record hash only. It excludes provider request/session identifiers, host identity, model configuration, and invocation-environment details.
 
+Commissioning pins both GitHub publications to the exact `foundry-evaluator` GitHub App (`app_id: 5263160`) installed for repository `Bulldog-Master/foundry` (`repository_id: 1297877588`). The repository ruleset must require the `foundry/four-gate` check from that App integration, not merely a matching check name. A counted review must have GitHub's verified App-authored identity for the same App and exact head. A same-named workflow, user, token, or different App never satisfies either trust. These source bindings are mandatory commissioning acceptance tests.
+
 ## 10.1 Privacy, disclosure, and retention
 
-Before provider transmission, the controller scans the diff and changed-file members for credential patterns, private keys, high-entropy tokens, and configured personal-data patterns. Any match blocks transmission pending removal or an explicit founder disclosure decision. The provider request contains the full sealed packet and therefore may contain public repository content; commissioning records the provider's applicable API data-use and retention terms.
+Before provider transmission, the controller scans the diff and changed-file members for credential patterns, private keys, high-entropy tokens, and configured personal-data patterns. Any match blocks transmission pending removal or an explicit founder disclosure decision. v0.1 permits automatic transmission only for public repositories and public-fork content. Private-repository or private-fork content is blocked unless the founder explicitly approves that exact disclosure after the provider's then-current API data-use, training, subprocessors, region, and retention terms are recorded and accepted. Unavailable or unacceptable terms block transmission.
 
-Packets and invocation evidence are root-owned, mode `0500`/`0400` or stricter, and inaccessible to producer and evaluator identities. Failed and successful commissioning evidence is retained for 90 days, then deleted under a separately approved retention job; evidence bound to an unmerged PR is retained until the PR closes plus 30 days. Changing this policy is a founder-reserved retention decision. GitHub publication is limited to the fields listed above.
-
-Which of the two branch protection trusts is established by the commissioning test PR, not assumed.
+Packets and invocation evidence are root-owned, mode `0500`/`0400` or stricter, append-preserving, and inaccessible to producer and evaluator identities. Evidence for merged PRs is retained until at least one year after both merge and any dependent activation; unmerged-PR evidence is retained until one year after closure; commissioning, preflight, and shadow evidence is retained until at least one year after the later of activation or abandonment. No governed producer, evaluator, controller worker, or publisher can delete evidence. Deletion requires a separately commissioned, founder-approved retention job outside those identities, an audit record of exact deleted hashes, and confirmation that no legal hold, open incident, rollback window, activation packet, or audit dependency remains. Changing this policy is a founder-reserved retention decision. GitHub publication is limited to the fields listed above.
 
 ## 11. Founder notification
 
@@ -147,9 +152,13 @@ These are defaults chosen to keep the founder out of the loop. Each goes to inde
 
 1. `PASS_WITH_CONDITIONS` returns to Operations in v0.1 (conservative). A later version may allow recorded post-merge conditions.
 2. The PR body is excluded from the packet.
-3. Re-review packets carry structured prior findings, and the invocation record notes that exposure.
+3. Re-review packets carry only the prior packet hash and no prior judgments.
 4. One re-invocation is permitted for malformed output only.
 
 ## 13. Not covered by this contract
 
 The remediation-loop work order format, the Codex worker adapter, the Hermes adapter, the GitHub App creation, and the Anthropic provider credential for the evaluator. If ADR-0003 is ratified, its reserved-act catalogue governs those founder-controlled acts; until then, Foundry 1 remains authoritative.
+
+## Appendix A. Conformance fixtures
+
+`operations/foundry-2/CONFORMANCE-VECTORS-v0.1.json` is normative. It contains canonical-JSON/hash vectors plus valid and intentionally invalid instances for each schema and named controller invalidity class. Implementations must reproduce every hash and expected outcome byte-for-byte before commissioning.

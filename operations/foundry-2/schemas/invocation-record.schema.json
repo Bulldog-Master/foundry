@@ -38,11 +38,11 @@
     },
     "accessible_context": {
       "type": "array", "uniqueItems": true,
-      "items": { "enum": ["packet_manifest", "packet_members", "pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured"] }
+      "items": { "enum": ["packet_manifest", "packet_members", "evaluator_task", "pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured", "other"] }
     },
-    "tools_available": { "type": "array", "maxItems": 0 },
-    "network_policy": { "const": "none" },
-    "credentials_present": { "type": "array", "maxItems": 0 },
+    "tools_available": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "network_policy": { "enum": ["none", "restricted", "unrestricted", "unknown"] },
+    "credentials_present": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
     "prior_exposure": {
       "type": "object", "additionalProperties": false,
       "required": ["known_prior_sessions_on_this_pr", "knowable_limits"],
@@ -54,7 +54,7 @@
     "attempt": { "type": "integer", "minimum": 1, "maximum": 2 },
     "started_at": { "type": "string", "format": "date-time" },
     "completed_at": { "type": "string", "format": "date-time" },
-    "schema_validation": { "enum": ["VALID", "INVALID_MALFORMED", "INVALID_BINDING_MISMATCH"] },
+    "schema_validation": { "enum": ["VALID", "INVALID_MALFORMED", "INVALID_BINDING_MISMATCH", "INVALID_DERIVED_OVERALL", "INVALID_FINDING_INDEX", "INVALID_EVIDENCE_REF", "INVALID_CONTEXT", "INVALID_MEMBER_CROSS_REFERENCE", "INVALID_ROUTING", "INVALID_OTHER"] },
     "routing_check": { "enum": ["MATCHES_TABLE", "MISMATCH", "NOT_APPLICABLE"] },
     "review_record_sha256": { "$ref": "#/$defs/sha256" }
   }

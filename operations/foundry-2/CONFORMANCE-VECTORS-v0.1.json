@@ -1,0 +1,120 @@
+{
+  "fixture_version": "0.1",
+  "canonical_json_vectors": [
+    {
+      "input": { "n": 17, "b": "\"\\\n", "a": "é" },
+      "canonical_utf8": "{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}",
+      "sha256": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423"
+    }
+  ],
+  "schema_cases": [
+    {
+      "id": "result-valid-pass",
+      "schema": "review-result.schema.json",
+      "expected": "VALID",
+      "instance": {
+        "result_schema_version": "0.1",
+        "packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pr_number": 1,
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluator_task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "gates": {
+          "architecture": { "verdict": "PASS", "finding_ids": [] },
+          "security": { "verdict": "PASS", "finding_ids": [] },
+          "privacy": { "verdict": "PASS", "finding_ids": [] },
+          "quality": { "verdict": "PASS", "finding_ids": [] }
+        },
+        "findings": [],
+        "overall": "PASS",
+        "routing": "CONTINUE",
+        "requires_human": false
+      }
+    },
+    {
+      "id": "result-invalid-pass-with-finding",
+      "schema": "review-result.schema.json",
+      "expected": "INVALID_FINDING_INDEX",
+      "mutation_of": "result-valid-pass",
+      "mutation": "add an unindexed finding while all gates remain PASS"
+    },
+    {
+      "id": "invocation-valid-isolated",
+      "schema": "invocation-record.schema.json",
+      "expected": "VALID",
+      "instance": {
+        "record_schema_version": "0.1",
+        "invocation_id": "00000000-0000-4000-8000-000000000001",
+        "packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "result_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluator": { "provider": "example", "model_id": "example", "config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+        "environment": { "session_id": "example", "runtime_image_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "host_id": "example" },
+        "accessible_context": ["packet_manifest", "packet_members", "evaluator_task"],
+        "tools_available": [],
+        "network_policy": "none",
+        "credentials_present": [],
+        "prior_exposure": { "known_prior_sessions_on_this_pr": [], "knowable_limits": "none known" },
+        "attempt": 1,
+        "started_at": "2026-01-01T00:00:00Z",
+        "completed_at": "2026-01-01T00:00:01Z",
+        "schema_validation": "VALID",
+        "routing_check": "MATCHES_TABLE",
+        "review_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    {
+      "id": "invocation-records-widening",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_CONTEXT",
+      "mutation_of": "invocation-valid-isolated",
+      "mutation": "set network_policy to unrestricted and list the observed tool and credential; the instance remains schema-representable but controller-invalid"
+    },
+    {
+      "id": "packet-valid-shape",
+      "schema": "review-packet.schema.json",
+      "expected": "VALID_SCHEMA_SHAPE",
+      "instance": {
+        "packet_schema_version": "0.1",
+        "packet_id": "00000000-0000-4000-8000-000000000002",
+        "repository": { "owner": "example", "name": "repo", "repo_id": 1 },
+        "pr_number": 1,
+        "base_ref": "main",
+        "base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "merge_base_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "head_repository": { "owner": "example", "name": "repo", "repo_id": 1 },
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "changed_files": [{ "path": "x.txt", "status": "added", "mode": "100644", "head_blob_sha": "cccccccccccccccccccccccccccccccccccccccc", "head_content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "size": 1, "member": "files/x.txt" }],
+        "diff": { "member": "diff.patch", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "git_version": "git version 2.53.0", "flags": ["--binary", "--no-ext-diff", "--no-textconv", "--full-index"] },
+        "governance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "governance_refs": [{ "path": "CONSTITUTION.md", "role": "governing", "source_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "member": "governance/base/CONSTITUTION.md" }],
+        "evaluator_task": { "task_id": "example", "version": "0.1", "sha256": "2222222222222222222222222222222222222222222222222222222222222222" },
+        "allowed_context": ["packet_manifest", "packet_members", "evaluator_task", "pr_diff", "changed_file_contents", "governing_refs_at_base"],
+        "prohibited_context": ["producer_self_assessment", "prior_findings_or_judgments", "network_access"],
+        "review_round": { "round": 1, "prior_packet_sha256": null },
+        "producer_identity": { "component": "foundry-packet-builder", "version": "0.1", "build_sha256": "3333333333333333333333333333333333333333333333333333333333333333" },
+        "completeness": { "complete": true, "truncated": false, "size_bytes": 3, "size_limit_bytes": 4000000 },
+        "members": [
+          { "name": "diff.patch", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "size": 1 },
+          { "name": "files/x.txt", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "size": 1 },
+          { "name": "governance/base/CONSTITUTION.md", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "size": 1 }
+        ],
+        "packet_created_at": "2026-01-01T00:00:00Z",
+        "packet_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      }
+    },
+    {
+      "id": "packet-invalid-deleted-has-head",
+      "schema": "review-packet.schema.json",
+      "expected": "INVALID_MALFORMED",
+      "mutation_of": "packet-valid-shape",
+      "mutation": "change status to deleted, add base_blob_sha, and retain head fields"
+    }
+  ],
+  "controller_cases": [
+    { "id": "derived-overall-mismatch", "expected": "INVALID_DERIVED_OVERALL" },
+    { "id": "member-hash-mismatch", "expected": "INVALID_MEMBER_CROSS_REFERENCE" },
+    { "id": "evidence-member-missing", "expected": "INVALID_EVIDENCE_REF" },
+    { "id": "first-invalid-attempt", "expected": "RETRY_IDENTICAL" },
+    { "id": "second-invalid-attempt", "expected": "HARD_STOP" },
+    { "id": "stale-head", "expected": "RESEAL_NO_PUBLICATION" }
+  ]
+}
