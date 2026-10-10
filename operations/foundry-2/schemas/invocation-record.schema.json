@@ -10,6 +10,10 @@
     "packet_sha256",
     "result_sha256",
     "raw_output_sha256",
+    "raw_output_bytes",
+    "transport_outcome",
+    "adverse_signal_scan",
+    "pre_transmission_disclosure",
     "evaluator",
     "environment",
     "accessible_context",
@@ -183,8 +187,124 @@
     "review_record_sha256": {
       "$ref": "#/$defs/sha256"
     },
+    "raw_output_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "transport_outcome": {
+      "enum": [
+        "COMPLETED",
+        "TIMEOUT",
+        "ERROR",
+        "INTERRUPTED"
+      ]
+    },
+    "adverse_signal_scan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm_version", "outcome", "matched_signals"],
+      "properties": {
+        "algorithm_version": {"const": "0.1"},
+        "outcome": {"enum": ["NONE", "ADVERSE"]},
+        "matched_signals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "verdict:FAIL",
+              "severity:CRITICAL",
+              "category:TRUST_BOUNDARY_DEFECT",
+              "category:INTEGRITY_ANOMALY",
+              "category:SPEC_AMBIGUITY",
+              "category:RESERVED_ACT_REQUIRED",
+              "category:OTHER"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "NONE"}}, "required": ["outcome"]},
+          "then": {"properties": {"matched_signals": {"maxItems": 0}}},
+          "else": {"properties": {"matched_signals": {"minItems": 1}}}
+        }
+      ]
+    },
+    "pre_transmission_disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scanner_sha256", "packet_sha256", "repository_visibility",
+        "fork_visibility", "members_scanned", "bytes_scanned", "scan_outcome",
+        "matched_rule_ids", "provider_terms_sha256", "founder_decision_sha256"
+      ],
+      "properties": {
+        "scanner_sha256": {"$ref": "#/$defs/sha256"},
+        "packet_sha256": {"$ref": "#/$defs/sha256"},
+        "repository_visibility": {"enum": ["PUBLIC", "PRIVATE", "INTERNAL"]},
+        "fork_visibility": {"enum": ["PUBLIC", "PRIVATE", "NOT_A_FORK"]},
+        "members_scanned": {"type": "integer", "minimum": 1},
+        "bytes_scanned": {"type": "integer", "minimum": 1},
+        "scan_outcome": {"enum": ["CLEAN", "MATCH_AUTHORIZED", "BLOCKED"]},
+        "matched_rule_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "provider_terms_sha256": {"$ref": "#/$defs/sha256"},
+        "founder_decision_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
     "raw_output_sha256": {
-      "$ref": "#/$defs/sha256"
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"raw_output_bytes": {"const": 0}}, "required": ["raw_output_bytes"]},
+      "then": {"properties": {"raw_output_sha256": {"type": "null"}}},
+      "else": {"properties": {"raw_output_sha256": {"$ref": "#/$defs/sha256"}}}
+    },
+    {
+      "if": {"properties": {"schema_validation": {"const": "VALID"}}, "required": ["schema_validation"]},
+      "then": {
+        "properties": {
+          "result_sha256": {"$ref": "#/$defs/sha256"},
+          "routing_check": {"const": "MATCHES_TABLE"},
+          "transport_outcome": {"const": "COMPLETED"}
+        }
+      },
+      "else": {"properties": {"result_sha256": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {"scan_outcome": {"const": "CLEAN"}},
+            "required": ["scan_outcome"]
+          }
+        },
+        "required": ["pre_transmission_disclosure"]
+      },
+      "then": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"maxItems": 0},
+              "founder_decision_sha256": {"type": "null"}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"minItems": 1},
+              "founder_decision_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    }
+  ]
 }

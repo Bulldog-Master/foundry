@@ -110,11 +110,12 @@
     },
     "evaluator_task": {
       "type": "object", "additionalProperties": false,
-      "required": ["task_id", "version", "sha256"],
+      "required": ["task_id", "version", "sha256", "routing_profile"],
       "properties": {
         "task_id": { "type": "string" },
         "version": { "type": "string" },
-        "sha256": { "$ref": "#/$defs/sha256" }
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "routing_profile": { "const": "foundry-routing-v0.1-security-na-hard-stop" }
       }
     },
     "allowed_context": {

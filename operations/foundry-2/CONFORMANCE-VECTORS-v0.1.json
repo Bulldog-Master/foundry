@@ -36,6 +36,16 @@
       },
       "canonical_utf8": "{\"a\":[true,null,{\"z\":\"\\t\",\"é\":\"雪\"}],\"😀\":\"astral\"}",
       "sha256": "0ad30f2873c37e666ffe14278179de8466e4af837b276bb97065b2a471656b4c"
+    },
+    {
+      "input": {
+        "controls": "\u0000\b\t\n\f\r\u001f",
+        "slash": "/",
+        "quote": "\"",
+        "backslash": "\\"
+      },
+      "canonical_utf8": "{\"backslash\":\"\\\\\",\"controls\":\"\\u0000\\b\\t\\n\\f\\r\\u001f\",\"quote\":\"\\\"\",\"slash\":\"/\"}",
+      "sha256": "8e171f7c5cfe6f611617be358977b3e9e83a88308e13d53aac2e507e944d41be"
     }
   ],
   "schema_cases": [
@@ -49,6 +59,7 @@
         "pr_number": 1,
         "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "evaluator_task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "routing_profile": "foundry-routing-v0.1-security-na-hard-stop",
         "gates": {
           "architecture": {
             "verdict": "PASS",
@@ -124,7 +135,26 @@
         "schema_validation": "VALID",
         "routing_check": "MATCHES_TABLE",
         "review_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "raw_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        "raw_output_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "raw_output_bytes": 1024,
+        "transport_outcome": "COMPLETED",
+        "adverse_signal_scan": {
+          "algorithm_version": "0.1",
+          "outcome": "NONE",
+          "matched_signals": []
+        },
+        "pre_transmission_disclosure": {
+          "scanner_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "repository_visibility": "PUBLIC",
+          "fork_visibility": "NOT_A_FORK",
+          "members_scanned": 3,
+          "bytes_scanned": 1024,
+          "scan_outcome": "CLEAN",
+          "matched_rule_ids": [],
+          "provider_terms_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "founder_decision_sha256": null
+        }
       }
     },
     {
@@ -157,6 +187,47 @@
             "provider-key"
           ]
         }
+      ]
+    },
+    {
+      "id": "invocation-valid-zero-byte-timeout",
+      "schema": "invocation-record.schema.json",
+      "expected": "VALID",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {"op": "replace", "path": "/raw_output_bytes", "value": 0},
+        {"op": "replace", "path": "/raw_output_sha256", "value": null},
+        {"op": "replace", "path": "/transport_outcome", "value": "TIMEOUT"},
+        {"op": "replace", "path": "/schema_validation", "value": "INVALID_MALFORMED"},
+        {"op": "replace", "path": "/routing_check", "value": "NOT_APPLICABLE"},
+        {"op": "replace", "path": "/result_sha256", "value": null}
+      ]
+    },
+    {
+      "id": "invocation-invalid-zero-byte-with-hash",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_MALFORMED",
+      "mutation_of": "invocation-valid-zero-byte-timeout",
+      "patch": [
+        {"op": "replace", "path": "/raw_output_sha256", "value": "9999999999999999999999999999999999999999999999999999999999999999"}
+      ]
+    },
+    {
+      "id": "invocation-invalid-result-hash-on-invalid-output",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_MALFORMED",
+      "mutation_of": "invocation-valid-zero-byte-timeout",
+      "patch": [
+        {"op": "replace", "path": "/result_sha256", "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+      ]
+    },
+    {
+      "id": "invocation-invalid-disclosure-packet-binding",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_BINDING_MISMATCH",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {"op": "replace", "path": "/pre_transmission_disclosure/packet_sha256", "value": "3333333333333333333333333333333333333333333333333333333333333333"}
       ]
     },
     {
@@ -217,7 +288,8 @@
         "evaluator_task": {
           "task_id": "example",
           "version": "0.1",
-          "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "routing_profile": "foundry-routing-v0.1-security-na-hard-stop"
         },
         "allowed_context": [
           "packet_manifest",
@@ -350,11 +422,12 @@
       "expected": "INVALID_ROUTING"
     },
     {
-      "id": "other-invalidity",
+      "id": "finding-index-mismatch",
       "input": {
-        "named_rule": "unclassified fail-closed invariant"
+        "indexed_findings": ["FND-SEC-001"],
+        "actual_findings": ["FND-SEC-002"]
       },
-      "expected": "INVALID_OTHER"
+      "expected": "INVALID_FINDING_INDEX"
     },
     {
       "id": "first-invalid-clean",
@@ -373,6 +446,22 @@
         ]
       },
       "expected": "HARD_STOP"
+    },
+    {
+      "id": "first-invalid-adverse-derived-from-raw-json",
+      "input": {
+        "attempt": 1,
+        "raw_output": "{\"nested\":[{\"severity\":\"CRITICAL\"}]}"
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "first-invalid-malformed-raw-json",
+      "input": {
+        "attempt": 1,
+        "raw_output": "not-json FAIL CRITICAL"
+      },
+      "expected": "RETRY_IDENTICAL"
     },
     {
       "id": "second-invalid-attempt",
@@ -402,6 +491,7 @@
   ],
   "routing_cases": [
     {
+      "id": "reserved-act",
       "input": {
         "categories": [
           "RESERVED_ACT_REQUIRED"
@@ -420,6 +510,7 @@
       ]
     },
     {
+      "id": "security-fail",
       "input": {
         "categories": [
           "IMPLEMENTATION_DEFECT"
@@ -436,6 +527,7 @@
       ]
     },
     {
+      "id": "hard-stop-category",
       "input": {
         "categories": [
           "SPEC_AMBIGUITY"
@@ -454,6 +546,7 @@
       ]
     },
     {
+      "id": "ordinary-finding-return",
       "input": {
         "categories": [
           "IMPLEMENTATION_DEFECT"
@@ -472,6 +565,7 @@
       ]
     },
     {
+      "id": "clean-continue",
       "input": {
         "categories": [],
         "security": "PASS",
@@ -484,6 +578,7 @@
       ]
     },
     {
+      "id": "security-na",
       "input": {
         "categories": [],
         "security": "N/A",

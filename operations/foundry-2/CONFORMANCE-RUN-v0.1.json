@@ -1,0 +1,18 @@
+{
+  "evidence_version": "0.1",
+  "run_at": "2026-10-10T22:51:45Z",
+  "command": "python3 operations/foundry-2/verify-conformance-v0.1.py",
+  "output": "PASS conformance-v0.1",
+  "python_version": "3.14.4",
+  "dependencies": {
+    "jsonschema": "4.19.2"
+  },
+  "artifacts": {
+    "operations/foundry-2/verify-conformance-v0.1.py": "f45e4ba8a870eaedc06b5791c78d38854790da499ec4e91f47b32aa80b07ff0a",
+    "operations/foundry-2/CONFORMANCE-VECTORS-v0.1.json": "35939524706685acbd11f885f354f09dd93cf05c8ef181f9e0fe2b174e842ae3",
+    "operations/foundry-2/schemas/invocation-record.schema.json": "817f50d74d3a3b7cae0b330a1b7228369b7874cad618a8ca155ce104bd09652b",
+    "operations/foundry-2/schemas/review-packet.schema.json": "5ffc9a9af25f3ce995d32ea4ea809cffcaa343d328b6988c783b7cd566b3dffd",
+    "operations/foundry-2/schemas/review-result.schema.json": "7dc9d4bf0c7cdbe83ee8c0bca158d6ace974282e797a713d86fa888e0d5e6b19",
+    "operations/foundry-2/requirements-conformance-v0.1.txt": "49026b67905a6c42bd426e6f8b3d2d08dc24ec6fe51cb2f706aea0a3fb5f8e08"
+  }
+}

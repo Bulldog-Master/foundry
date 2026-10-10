@@ -10,6 +10,7 @@
     "pr_number",
     "head_sha",
     "evaluator_task_sha256",
+    "routing_profile",
     "gates",
     "findings",
     "overall",
@@ -164,6 +165,9 @@
     },
     "evaluator_task_sha256": {
       "$ref": "#/$defs/sha256"
+    },
+    "routing_profile": {
+      "const": "foundry-routing-v0.1-security-na-hard-stop"
     },
     "gates": {
       "type": "object",

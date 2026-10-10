@@ -1,17 +1,11 @@
 # Amendment 0001 — Controller-Observed Reviewer Identity
 
-- **Status:** RATIFIED AS THE FOUNDER'S AUTHORITATIVE INTERPRETATION — NOT COMMISSIONED OR ACTIVATED
+- **Status:** PROPOSED — NOT RATIFIED, COMMISSIONED, OR ACTIVATED
 - **Amends:** `operations/FOUNDRY-2-CONTROLLER-DESIGN-v0.1.md`, section “Structured review result”
-- **Ratified:** 2026-10-10 by the founder's explicit determination recorded below
+- **Ratification:** Requires a separate founder-controlled act outside this subject PR
 - **Scope:** Resolves only the authorship and placement of `reviewer_identity` and `independence_record`; it does not ratify ADR-0003, approve a commissioning scope, activate Foundry 2, authorize implementation, or merge this PR
 
-## Founder determination
-
-> I determine that the structured Security/Evaluation result means the combined authoritative review record, and I authorize remediation of the current PR #26 findings on that basis.
-
-This determination is recorded verbatim. It establishes that the governing “structured Security/Evaluation result” is the combined authoritative review record described below.
-
-## Ratified interpretation
+## Proposed interpretation
 
 Replace `reviewer_identity` and `independence_record` in the evaluator-authored structured payload with a controller-authored invocation record bound to that payload by `result_sha256` and `review_record_sha256`.
 
@@ -23,6 +17,6 @@ The combined authoritative review record remains machine-readable and contains e
 - controller invocation record: observed `reviewer_identity` facts and the complete `independence_record` facts;
 - cryptographic bindings between packet, payload, invocation record, task, configuration, and exact PR head.
 
-## Compatibility and commissioning
+## Ratification boundary and commissioning
 
-This ratification resolves the controller-design field-authorship ambiguity for review of this contract. It does not itself commission or activate the design. ADR-0003 ratification, a separate founder-approved commissioning scope, frozen release hashes, trust-anchor evidence, and all other governing preconditions remain mandatory before implementation or activation.
+This subject PR does not evidence, quote, author, or pre-complete the founder's reserved act. Until a separate founder-controlled record ratifies this amendment in the governing base, the controller must treat the proposal as non-authoritative and route `ESCALATE_FOUNDER`. Ratification would resolve only the controller-design field-authorship ambiguity; it would not commission or activate the design. ADR-0003 ratification, a separate founder-approved commissioning scope, frozen release hashes, trust-anchor evidence, and all other governing preconditions remain mandatory before implementation or activation.
