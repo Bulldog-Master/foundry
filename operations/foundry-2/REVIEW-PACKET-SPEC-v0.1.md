@@ -29,7 +29,7 @@ A packet is a directory sealed by `manifest.json` plus members (files). The mani
 
 1. The exact diff between `merge_base_sha` and `head_sha`, generated with pinned git version and recorded flags (`--binary --no-ext-diff --no-textconv --full-index` at minimum).
 2. The full head contents of every changed file. A diff alone is not sufficient for evaluation.
-3. Governing references, read at **`base_sha`**, from a ratified packet profile (the allowlist of Constitution, ADR, `VERSION.md`, and operations paths that govern review). A PR therefore cannot alter the rules it is judged by.
+3. Governing references, read at **`base_sha`**, from the independently commissioned controller release profile (the allowlist of Constitution, ADR, `VERSION.md`, and operations paths that govern review). The profile and packet builder are frozen outside the subject repository before use, and their hashes are recorded in commissioning evidence. A PR therefore cannot alter the rules or evidence-selection code by which it is judged.
 4. If the PR itself changes a governing file, the head version is also included with role `subject_head_version`, and the evaluator task states that the base version governs.
 5. The evaluator task (identity, version, hash). The instructions live in the versioned task, not in the packet.
 6. For re-review only: structured prior findings (ID, gate, severity, title, claimed remediation commit). No prior verdict prose.
@@ -49,7 +49,7 @@ A packet is a directory sealed by `manifest.json` plus members (files). The mani
 ## 4. Sealing
 
 - Every member is listed in `members[]` with SHA-256 and size.
-- `packet_sha256` = SHA-256 of the manifest serialized with RFC 8785 JSON canonicalization, with the `packet_sha256` field omitted.
+- `packet_sha256` = SHA-256 of the manifest serialized with the Foundry v0.1 canonical JSON profile, with the `packet_sha256` field omitted. That profile is UTF-8 JSON with no insignificant whitespace, object member names sorted lexicographically by Unicode code point, non-ASCII characters emitted directly, and integers serialized in ordinary base-10 form. The v0.1 schemas permit no non-integer JSON numbers. This deliberately describes the implemented profile and makes no RFC 8785 interoperability claim.
 - The sealed packet is stored append-only, outside the write authority of the producer, Hermes, Codex, and the evaluator.
 - The packet hash is also written into the GitHub check output when the verdict is published, giving an external witness.
 - Inputs are fetched by commit SHA, never by branch name. If the PR head moves while the packet is being built, the build restarts.
