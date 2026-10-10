@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "foundry-2/invocation-record/v0.1",
+  "title": "Foundry 2 evaluator invocation record v0.1 (authored by the controller from observed facts, never by the evaluator)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_schema_version",
+    "invocation_id",
+    "packet_sha256",
+    "result_sha256",
+    "raw_output_sha256",
+    "raw_output_bytes",
+    "transport_outcome",
+    "adverse_signal_scan",
+    "pre_transmission_disclosure",
+    "evaluator",
+    "environment",
+    "accessible_context",
+    "tools_available",
+    "network_policy",
+    "credentials_present",
+    "prior_exposure",
+    "attempt",
+    "started_at",
+    "completed_at",
+    "schema_validation",
+    "routing_check",
+    "review_record_sha256"
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "properties": {
+    "record_schema_version": {
+      "const": "0.1"
+    },
+    "invocation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "packet_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "result_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "model_id",
+        "config_sha256",
+        "system_prompt_sha256"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "model_id": {
+          "type": "string"
+        },
+        "config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "system_prompt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id_sha256",
+        "runtime_image_sha256",
+        "host_id_sha256"
+      ],
+      "properties": {
+        "session_id_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "runtime_image_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "host_id_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "accessible_context": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "tools_available": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "network_policy": {
+      "enum": [
+        "none",
+        "restricted",
+        "unrestricted",
+        "unknown"
+      ]
+    },
+    "credentials_present": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "prior_exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "known_prior_sessions_on_this_pr",
+        "knowable_limits"
+      ],
+      "properties": {
+        "known_prior_sessions_on_this_pr": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "knowable_limits": {
+          "type": "string"
+        }
+      }
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "schema_validation": {
+      "enum": [
+        "VALID",
+        "INVALID_MALFORMED",
+        "INVALID_BINDING_MISMATCH",
+        "INVALID_DERIVED_OVERALL",
+        "INVALID_FINDING_INDEX",
+        "INVALID_EVIDENCE_REF",
+        "INVALID_CONTEXT",
+        "INVALID_MEMBER_CROSS_REFERENCE",
+        "INVALID_ROUTING",
+        "INVALID_OTHER"
+      ]
+    },
+    "routing_check": {
+      "enum": [
+        "MATCHES_TABLE",
+        "MISMATCH",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "review_record_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "raw_output_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "transport_outcome": {
+      "enum": [
+        "COMPLETED",
+        "TIMEOUT",
+        "ERROR",
+        "INTERRUPTED"
+      ]
+    },
+    "adverse_signal_scan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm_version", "outcome", "matched_signals"],
+      "properties": {
+        "algorithm_version": {"const": "0.1"},
+        "outcome": {"enum": ["NONE", "ADVERSE", "INDETERMINATE"]},
+        "matched_signals": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "verdict:FAIL",
+              "severity:CRITICAL",
+              "category:TRUST_BOUNDARY_DEFECT",
+              "category:INTEGRITY_ANOMALY",
+              "category:SPEC_AMBIGUITY",
+              "category:RESERVED_ACT_REQUIRED",
+              "category:OTHER"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "NONE"}}, "required": ["outcome"]},
+          "then": {"properties": {"matched_signals": {"maxItems": 0}}},
+          "else": {
+            "if": {"properties": {"outcome": {"const": "ADVERSE"}}, "required": ["outcome"]},
+            "then": {"properties": {"matched_signals": {"minItems": 1}}},
+            "else": {"properties": {"matched_signals": {"maxItems": 0}}}
+          }
+        }
+      ]
+    },
+    "pre_transmission_disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scanner_sha256", "packet_sha256", "repository_visibility",
+        "fork_visibility", "members_scanned", "bytes_scanned", "scan_outcome",
+        "matched_rule_ids", "provider_terms_sha256", "provider_terms_accepted", "founder_decision_sha256"
+      ],
+      "properties": {
+        "scanner_sha256": {"$ref": "#/$defs/sha256"},
+        "packet_sha256": {"$ref": "#/$defs/sha256"},
+        "repository_visibility": {"enum": ["PUBLIC", "PRIVATE", "INTERNAL"]},
+        "fork_visibility": {"enum": ["PUBLIC", "PRIVATE", "NOT_A_FORK"]},
+        "members_scanned": {"type": "integer", "minimum": 1},
+        "bytes_scanned": {"type": "integer", "minimum": 1},
+        "scan_outcome": {"enum": ["CLEAN", "MATCH_AUTHORIZED", "BLOCKED"]},
+        "matched_rule_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "provider_terms_sha256": {"$ref": "#/$defs/sha256"},
+        "provider_terms_accepted": {"const": true},
+        "founder_decision_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "raw_output_sha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"raw_output_bytes": {"const": 0}}, "required": ["raw_output_bytes"]},
+      "then": {"properties": {"raw_output_sha256": {"type": "null"}}},
+      "else": {"properties": {"raw_output_sha256": {"$ref": "#/$defs/sha256"}}}
+    },
+    {
+      "if": {"properties": {"schema_validation": {"const": "VALID"}}, "required": ["schema_validation"]},
+      "then": {
+        "properties": {
+          "result_sha256": {"$ref": "#/$defs/sha256"},
+          "routing_check": {"const": "MATCHES_TABLE"},
+          "transport_outcome": {"const": "COMPLETED"}
+        }
+      },
+      "else": {"properties": {"result_sha256": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {"scan_outcome": {"const": "CLEAN"}},
+            "required": ["scan_outcome"]
+          }
+        },
+        "required": ["pre_transmission_disclosure"]
+      },
+      "then": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"maxItems": 0}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"pre_transmission_disclosure": {"properties": {"scan_outcome": {"const": "MATCH_AUTHORIZED"}}}}
+      },
+      "then": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"minItems": 1},
+              "founder_decision_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"pre_transmission_disclosure": {"properties": {"scan_outcome": {"const": "BLOCKED"}}}}
+      },
+      "then": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"minItems": 1},
+              "founder_decision_sha256": {"type": "null"}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
