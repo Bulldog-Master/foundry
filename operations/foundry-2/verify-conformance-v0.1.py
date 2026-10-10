@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import copy
+import datetime
 import hashlib
 import json
 import pathlib
-import subprocess
+import re
 import sys
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -13,6 +14,16 @@ V = json.loads((ROOT / "CONFORMANCE-VECTORS-v0.1.json").read_text())
 ALLOWED_CONTEXT = ["packet_manifest", "packet_members", "evaluator_task"]
 GATE_PREFIX = {"architecture": "ARCH", "security": "SEC", "privacy": "PRIV", "quality": "QUAL"}
 HARD_CATEGORIES = {"TRUST_BOUNDARY_DEFECT", "INTEGRITY_ANOMALY", "SPEC_AMBIGUITY", "OTHER"}
+FORMAT_CHECKER = FormatChecker()
+RFC3339 = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$")
+
+
+@FORMAT_CHECKER.checks("date-time", raises=(TypeError, ValueError))
+def valid_datetime(value):
+    if not isinstance(value, str) or not RFC3339.fullmatch(value):
+        return False
+    parsed = datetime.datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+    return parsed.tzinfo is not None
 
 
 def canon(value):
@@ -98,10 +109,10 @@ def semantic_result(instance):
         "categories": [finding["category"] for finding in instance["findings"]],
         "severities": [finding["severity"] for finding in instance["findings"]],
         "security": instance["gates"]["security"]["verdict"],
-        "other_gates": [
-            gate["verdict"] for name, gate in instance["gates"].items()
-            if name != "security" and gate["verdict"] in ("FAIL", "PASS_WITH_CONDITIONS")
-        ],
+        "other_gates": [gate["verdict"] for gate in instance["gates"].values()
+                        if gate["verdict"] == "PASS_WITH_CONDITIONS"]
+                       + [gate["verdict"] for name, gate in instance["gates"].items()
+                          if name != "security" and gate["verdict"] == "FAIL"],
     }
     expected_route, expected_human = routing(route_input)
     if [instance["routing"], instance["requires_human"]] != [expected_route, expected_human]:
@@ -116,9 +127,12 @@ def semantic_invocation(instance):
     if instance["pre_transmission_disclosure"]["packet_sha256"] != instance["packet_sha256"]:
         return "INVALID_BINDING_MISMATCH"
     disclosure = instance["pre_transmission_disclosure"]
-    if disclosure["scan_outcome"] == "CLEAN" and (
-            disclosure["repository_visibility"] != "PUBLIC"
-            or disclosure["fork_visibility"] not in ("PUBLIC", "NOT_A_FORK")):
+    private = disclosure["repository_visibility"] != "PUBLIC" or disclosure["fork_visibility"] == "PRIVATE"
+    if not disclosure["provider_terms_accepted"]:
+        return "INVALID_OTHER"
+    if disclosure["scan_outcome"] == "CLEAN" and private and disclosure["founder_decision_sha256"] is None:
+        return "INVALID_OTHER"
+    if disclosure["scan_outcome"] == "BLOCKED":
         return "INVALID_OTHER"
     if instance["raw_output_bytes"] == 0 and instance["raw_output_sha256"] is not None:
         return "INVALID_OTHER"
@@ -150,11 +164,13 @@ def adverse_signals(raw):
         return out
 
     try:
-        value = json.loads(raw, object_pairs_hook=unique_pairs)
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        return []
+        text = raw.decode("utf-8", errors="strict")
+        value = json.loads(text, object_pairs_hook=unique_pairs,
+                           parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        return "INDETERMINATE", []
     if duplicates or not isinstance(value, dict):
-        return []
+        return "INDETERMINATE", []
     found = set()
 
     def walk(item):
@@ -173,14 +189,14 @@ def adverse_signals(raw):
                 walk(child)
 
     walk(value)
-    return sorted(found)
+    return ("ADVERSE" if found else "NONE"), sorted(found)
 
 
 def controller(case):
     x = case["input"]
     if "raw_output" in x:
-        signals = adverse_signals(x["raw_output"].encode("utf-8"))
-        if x["attempt"] == 2 or signals:
+        outcome, signals = adverse_signals(x["raw_output"].encode("utf-8"))
+        if x["attempt"] == 2 or outcome != "NONE" or signals:
             return "HARD_STOP"
         return "RETRY_IDENTICAL"
     if "gate_verdicts" in x:
@@ -221,16 +237,15 @@ def main():
         assert hashlib.sha256(data).hexdigest() == vector["sha256"], vector
 
     literal = V["canonical_json_vectors"][0]["canonical_utf8"].encode("utf-8")
-    external_digest = subprocess.check_output(["sha256sum"], input=literal).decode().split()[0]
-    assert external_digest == V["hash_provenance"][1]["expected"] == hashlib.sha256(literal).hexdigest()
+    assert V["hash_provenance"][0]["expected"] == hashlib.sha256(literal).hexdigest()
     if len(sys.argv) > 1 and sys.argv[1] == "--hash-only":
         print(hashlib.sha256(literal).hexdigest())
         return
 
     for case in V["schema_cases"]:
         instance = instance_for(case)
-        schema = json.loads((ROOT / "schemas" / case["schema"]).read_text())
-        errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(instance))
+        schema = json.loads((ROOT / "schemas" / case["schema"]).read_text(encoding="utf-8"))
+        errors = list(Draft202012Validator(schema, format_checker=FORMAT_CHECKER).iter_errors(instance))
         if case["expected"] == "VALID":
             assert not errors and semantic_case(case["schema"], instance) == "VALID", case["id"]
         elif case["expected"] == "INVALID_MALFORMED":

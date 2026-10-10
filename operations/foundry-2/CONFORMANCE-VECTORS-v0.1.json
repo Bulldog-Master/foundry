@@ -98,6 +98,18 @@
       ]
     },
     {
+      "id": "result-valid-security-pass-with-conditions",
+      "schema": "review-result.schema.json",
+      "expected": "VALID",
+      "mutation_of": "result-valid-pass",
+      "patch": [
+        {"op": "replace", "path": "/gates/security/verdict", "value": "PASS_WITH_CONDITIONS"},
+        {"op": "add", "path": "/gates/security/conditions", "value": ["Complete the stated condition"]},
+        {"op": "replace", "path": "/overall", "value": "PASS_WITH_CONDITIONS"},
+        {"op": "replace", "path": "/routing", "value": "RETURN_TO_OPERATIONS"}
+      ]
+    },
+    {
       "id": "invocation-valid-isolated",
       "schema": "invocation-record.schema.json",
       "expected": "VALID",
@@ -113,9 +125,9 @@
           "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
         },
         "environment": {
-          "session_id": "example",
+          "session_id_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
           "runtime_image_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-          "host_id": "example"
+          "host_id_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         "accessible_context": [
           "packet_manifest",
@@ -153,6 +165,7 @@
           "scan_outcome": "CLEAN",
           "matched_rule_ids": [],
           "provider_terms_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "provider_terms_accepted": true,
           "founder_decision_sha256": null
         }
       }
@@ -228,6 +241,37 @@
       "mutation_of": "invocation-valid-isolated",
       "patch": [
         {"op": "replace", "path": "/pre_transmission_disclosure/packet_sha256", "value": "3333333333333333333333333333333333333333333333333333333333333333"}
+      ]
+    },
+    {
+      "id": "invocation-valid-private-clean-authorized",
+      "schema": "invocation-record.schema.json",
+      "expected": "VALID",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {"op": "replace", "path": "/pre_transmission_disclosure/repository_visibility", "value": "PRIVATE"},
+        {"op": "replace", "path": "/pre_transmission_disclosure/founder_decision_sha256", "value": "6666666666666666666666666666666666666666666666666666666666666666"}
+      ]
+    },
+    {
+      "id": "invocation-valid-matched-authorized",
+      "schema": "invocation-record.schema.json",
+      "expected": "VALID",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {"op": "replace", "path": "/pre_transmission_disclosure/scan_outcome", "value": "MATCH_AUTHORIZED"},
+        {"op": "replace", "path": "/pre_transmission_disclosure/matched_rule_ids", "value": ["PERSONAL_DATA"]},
+        {"op": "replace", "path": "/pre_transmission_disclosure/founder_decision_sha256", "value": "7777777777777777777777777777777777777777777777777777777777777777"}
+      ]
+    },
+    {
+      "id": "invocation-blocked-not-transmittable",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_OTHER",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {"op": "replace", "path": "/pre_transmission_disclosure/scan_outcome", "value": "BLOCKED"},
+        {"op": "replace", "path": "/pre_transmission_disclosure/matched_rule_ids", "value": ["PRIVATE_KEY"]}
       ]
     },
     {
@@ -442,7 +486,7 @@
       "input": {
         "attempt": 1,
         "parseable_adverse_signals": [
-          "security:FAIL"
+          "verdict:FAIL"
         ]
       },
       "expected": "HARD_STOP"
@@ -461,7 +505,15 @@
         "attempt": 1,
         "raw_output": "not-json FAIL CRITICAL"
       },
-      "expected": "RETRY_IDENTICAL"
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "first-invalid-duplicate-key-raw-json",
+      "input": {
+        "attempt": 1,
+        "raw_output": "{\"severity\":\"MINOR\",\"severity\":\"CRITICAL\"}"
+      },
+      "expected": "HARD_STOP"
     },
     {
       "id": "second-invalid-attempt",
