@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Run one Foundry PR through build, seal, evaluate, validate, and publish."""
+import fcntl, json, os, pathlib, shutil, stat, subprocess, sys, urllib.request
+
+ROOT="/var/lib/foundry-evaluator"
+REPO=ROOT+"/repos/foundry.git"
+PROFILE="/opt/foundry-evaluator/current/profile.json"
+BUILDER="/opt/foundry-evaluator/current/bin/foundry-packet-builder"
+INVOKER="/opt/foundry-evaluator/current/bin/foundry-evaluator-invoke"
+PUBLISHER="/opt/foundry-evaluator/current/bin/foundry-evaluator-publish"
+OWNER="Bulldog-Master"; NAME="foundry"; REPO_ID=1297877588
+
+def run(cmd,check=True):
+    return subprocess.run(cmd,text=True,capture_output=True,check=check)
+def api(path):
+    req=urllib.request.Request("https://api.github.com"+path,headers={"Accept":"application/vnd.github+json","User-Agent":"foundry-evaluator-controller/0.1"})
+    with urllib.request.urlopen(req,timeout=60) as r: return json.loads(r.read())
+def lock_file(path):
+    pathlib.Path(path).parent.mkdir(parents=True,exist_ok=True); f=open(path,"a+"); fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB); return f
+def readonly_tree(path):
+    for root,dirs,files in os.walk(path):
+        for n in dirs: os.chmod(os.path.join(root,n),0o500)
+        for n in files: os.chmod(os.path.join(root,n),0o400)
+    os.chmod(path,0o500)
+
+def main():
+    if os.geteuid()!=0: raise SystemExit("must run as root")
+    if len(sys.argv)!=2 or not sys.argv[1].isdigit(): raise SystemExit("usage: foundry-evaluator-run PR_NUMBER")
+    prn=int(sys.argv[1]); lock=lock_file(ROOT+"/locks/pr-%d.lock"%prn)
+    pr=api("/repos/%s/%s/pulls/%d"%(OWNER,NAME,prn))
+    if pr["state"]!="open" or pr["base"]["repo"]["id"]!=REPO_ID or pr["head"]["repo"]["id"]!=REPO_ID:
+        raise SystemExit("PR is closed or repository binding differs")
+    head=pr["head"]["sha"]; base=pr["base"]["sha"]; base_ref=pr["base"]["ref"]
+    state=pathlib.Path(ROOT+"/heads/%d/%s"%(prn,head))
+    if (state/"published.json").exists():
+        print((state/"published.json").read_text()); return
+    state.mkdir(parents=True,exist_ok=True)
+    if not os.path.isdir(REPO):
+        pathlib.Path(REPO).parent.mkdir(parents=True,exist_ok=True)
+        run(["git","clone","--mirror","https://github.com/%s/%s.git"%(OWNER,NAME),REPO])
+    run(["git","--git-dir",REPO,"fetch","--force","origin","refs/pull/%d/head:refs/foundry/pr-%d/head"%(prn,prn),
+         "+refs/heads/%s:refs/foundry/pr-%d/base"%(base_ref,prn)])
+    observed=run(["git","--git-dir",REPO,"rev-parse","refs/foundry/pr-%d/head"%prn]).stdout.strip()
+    if observed!=head: raise SystemExit("fetched head mismatch")
+    merge=run(["git","--git-dir",REPO,"merge-base",base,head]).stdout.strip()
+    staging=ROOT+"/staging/pr-%d-%s"%(prn,head)
+    if os.path.exists(staging): shutil.rmtree(staging)
+    built=run([BUILDER,"--repo",REPO,"--profile",PROFILE,"--pr",str(prn),"--base-ref",base_ref,
+               "--base-sha",base,"--merge-base-sha",merge,"--head-sha",head,"--output",staging])
+    meta=json.loads(built.stdout); packet_sha=meta["packet_sha256"]; sealed=ROOT+"/packets/"+packet_sha
+    if os.path.exists(sealed): shutil.rmtree(staging)
+    else: os.rename(staging,sealed); readonly_tree(sealed)
+    invocation=None
+    for _ in (1,2):
+        p=run([INVOKER,sealed],check=False); invocation={"returncode":p.returncode,"stdout":p.stdout,"stderr":p.stderr}
+        if p.returncode==0: break
+        if p.returncode!=5: break
+    (state/"invocation.json").write_text(json.dumps(invocation,sort_keys=True)+"\n")
+    if invocation["returncode"]!=0:
+        print(json.dumps({"status":"stopped","head_sha":head,"packet_sha256":packet_sha,"invocation":invocation},sort_keys=True)); return
+    summary=json.loads(invocation["stdout"]); run_dir=summary["run_dir"]
+    pub=run([PUBLISHER,sealed,run_dir]); published=json.loads(pub.stdout)
+    published.update({"status":"published","pr_number":prn,"head_sha":head,"packet_sha256":packet_sha})
+    tmp=state/"published.json.tmp"; tmp.write_text(json.dumps(published,sort_keys=True)+"\n"); os.replace(tmp,state/"published.json")
+    print(json.dumps(published,sort_keys=True))
+if __name__=="__main__": main()

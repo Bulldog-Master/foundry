@@ -1,0 +1,19 @@
+[Unit]
+Description=Foundry evaluator poll and review
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/opt/foundry-evaluator/current/bin/foundry-evaluator-poll
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/foundry-evaluator
+ReadOnlyPaths=/etc/foundry-evaluator /opt/foundry-evaluator
+RestrictSUIDSGID=true
+LockPersonality=true

@@ -1,0 +1,12 @@
+{
+  "name": "foundry-evaluator",
+  "description": "Publishes hash-bound Foundry evaluator checks and pull-request reviews. No code, merge, administration, workflow, or secret authority.",
+  "public": false,
+  "webhook_active": false,
+  "permissions": {
+    "checks": "write",
+    "contents": "read",
+    "pull_requests": "write"
+  },
+  "repository_selection": "selected: Bulldog-Master/foundry"
+}

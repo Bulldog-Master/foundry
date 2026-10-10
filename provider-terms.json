@@ -1,0 +1,15 @@
+{
+  "provider": "Anthropic",
+  "service": "Messages API",
+  "terms_reviewed_at": "2026-10-10T23:00:00Z",
+  "training": "Commercial API inputs and outputs are not used for model training by default unless the customer explicitly provides feedback, opts in, or has a different agreement.",
+  "retention": "API inputs and outputs are normally deleted from Anthropic backends within 30 days, subject to longer-retention services, an agreed alternative such as ZDR, usage-policy enforcement, or law. Flagged usage-policy content may be retained longer.",
+  "region": "Customer data may be processed in the US, Europe, Asia, and Australia; Anthropic states that data is stored in the US unless otherwise agreed or directed.",
+  "subprocessors": "Current subprocessors are controlled by Anthropic's published subprocessor list.",
+  "sources": [
+    "https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data",
+    "https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training",
+    "https://privacy.claude.com/en/articles/7996890-where-are-your-servers-located-do-you-host-your-models-on-eu-servers"
+  ],
+  "accepted_for": "public-repository Foundry BOOTSTRAP-0 evaluations only"
+}

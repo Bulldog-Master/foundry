@@ -1,0 +1,22 @@
+{
+  "profile_version": "bootstrap-0b-external-v1",
+  "repository": {"owner": "Bulldog-Master", "name": "foundry", "repo_id": 1297877588},
+  "head_repository": {"owner": "Bulldog-Master", "name": "foundry", "repo_id": 1297877588},
+  "governing_at_base": [
+    "CONSTITUTION.md",
+    "VERSION.md",
+    "adrs/ADR-0001-model-neutral-foundry-boundaries.md",
+    "adrs/ADR-0002-evaluator-independence-and-isolation.md",
+    "operations/FOUNDRY-2-COMMISSIONING-v0.1.md",
+    "operations/FOUNDRY-2-CONTROLLER-DESIGN-v0.1.md",
+    "operations/FOUNDRY-CONTROLLER-v0.1-DESIGN.md"
+  ],
+  "subject_at_head": ["adrs/ADR-0003-foundry-2-exception-driven-autonomous-operations.md"],
+  "related_context": [],
+  "evaluator_task": {
+    "task_id": "foundry-four-gate-bootstrap-0",
+    "version": "0.1",
+    "sha256": "510705d39129cc97651a568eba1c313fe0b1f1ab9e8262ea75826ae5c12780ac",
+    "routing_profile": "foundry-routing-v0.1-security-na-hard-stop"
+  }
+}

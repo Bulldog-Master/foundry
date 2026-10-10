@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Build a complete, hash-bound Foundry review packet from immutable Git SHAs."""
+import argparse, datetime, hashlib, json, os, pathlib, stat, subprocess, uuid
+
+SIZE_LIMIT = 4_000_000
+DIFF_FLAGS = ["--binary", "--no-ext-diff", "--no-textconv", "--full-index"]
+
+def sha(b): return hashlib.sha256(b).hexdigest()
+def canon(o): return json.dumps(o,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()
+def git(repo,*args,text=False):
+    return subprocess.check_output(["git","-c","safe.directory="+str(repo),"-C",str(repo),*args],text=text)
+def blob(repo,commit,path): return git(repo,"show",commit+":"+path)
+
+def safe_profile(path):
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
+    try:
+        st=os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid!=0 or st.st_mode&0o022:
+            raise SystemExit("unsafe profile owner/mode")
+        return json.loads(os.read(fd,1_000_001).decode())
+    finally: os.close(fd)
+
+def main():
+    p=argparse.ArgumentParser(); p.add_argument("--repo",required=True); p.add_argument("--profile",required=True)
+    p.add_argument("--pr",required=True,type=int); p.add_argument("--base-ref",required=True); p.add_argument("--base-sha",required=True)
+    p.add_argument("--merge-base-sha",required=True); p.add_argument("--head-sha",required=True); p.add_argument("--output",required=True)
+    a=p.parse_args(); repo=pathlib.Path(a.repo).resolve(); out=pathlib.Path(a.output); prof=safe_profile(a.profile)
+    if out.exists(): raise SystemExit("output exists")
+    for value in (a.base_sha,a.merge_base_sha,a.head_sha):
+        if len(value)!=40 or any(c not in "0123456789abcdef" for c in value): raise SystemExit("bad git SHA")
+        git(repo,"cat-file","-e",value+"^{commit}")
+    if git(repo,"merge-base",a.base_sha,a.head_sha,text=True).strip()!=a.merge_base_sha: raise SystemExit("merge base mismatch")
+    required={"profile_version","repository","head_repository","governing_at_base","subject_at_head","related_context","evaluator_task"}
+    if set(prof)!=required: raise SystemExit("profile keys mismatch")
+    out.mkdir(mode=0o700); members={}
+    diff=git(repo,"diff",*DIFF_FLAGS,a.merge_base_sha,a.head_sha); members["diff.patch"]=diff
+    changed=[]; parts=git(repo,"diff","--name-status","-z","--find-renames",a.merge_base_sha,a.head_sha).split(b"\0"); i=0
+    while i<len(parts)-1:
+        code=parts[i].decode("ascii"); i+=1; old=None
+        if code.startswith("R"):
+            old=parts[i].decode(); path=parts[i+1].decode(); i+=2; status="renamed"
+        else:
+            path=parts[i].decode(); i+=1; status={"A":"added","M":"modified","D":"deleted"}.get(code[0])
+        if status is None: raise SystemExit("unsupported status %s for %s"%(code,path))
+        if status=="deleted":
+            prior=git(repo,"rev-parse",a.merge_base_sha+":"+path,text=True).strip()
+            changed.append({"path":path,"status":status,"base_blob_sha":prior})
+            continue
+        tree=git(repo,"ls-tree",a.head_sha,"--",path,text=True).strip().split(); mode,kind,bsha=tree[:3]
+        if kind!="blob": raise SystemExit("changed path not blob: "+path)
+        data=blob(repo,a.head_sha,path); name="files/"+path; members[name]=data
+        row={"path":path,"status":status,"mode":mode,"head_blob_sha":bsha,"head_content_sha256":sha(data),"size":len(data),"member":name}
+        if old: row["old_path"]=old
+        cmd=["git","-c","safe.directory="+str(repo),"-C",str(repo),"rev-parse",a.merge_base_sha+":"+(old or path)]
+        prior=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+        if prior.returncode==0: row["base_blob_sha"]=prior.stdout.strip()
+        changed.append(row)
+    gov=[]
+    for role,source,paths,prefix in (("governing",a.base_sha,prof["governing_at_base"],"governance/base"),
+                                      ("subject_head_version",a.head_sha,prof["subject_at_head"],"governance/subject")):
+        for path in paths:
+            data=blob(repo,source,path); name=prefix+"/"+path; members[name]=data
+            gov.append({"path":path,"role":role,"source_sha":source,"sha256":sha(data),"member":name})
+    related=[]
+    for row in prof["related_context"]:
+        if set(row)!={"path","source","gates","justification"} or row["source"] not in ("base","head") or not row["gates"] or not row["justification"]:
+            raise SystemExit("invalid related_context profile entry")
+        source=a.base_sha if row["source"]=="base" else a.head_sha
+        data=blob(repo,source,row["path"]); name="context/"+row["source"]+"/"+row["path"]; members[name]=data
+        related.append({"path":row["path"],"source":row["source"],"source_sha":source,"sha256":sha(data),"member":name,
+                        "gates":row["gates"],"justification":row["justification"]})
+    total=sum(map(len,members.values()))
+    if total>SIZE_LIMIT: raise SystemExit("packet exceeds size limit")
+    for name,data in members.items():
+        target=out/name; target.parent.mkdir(parents=True,exist_ok=True); target.write_bytes(data)
+    build_sha=sha(pathlib.Path(__file__).read_bytes())
+    m={"packet_schema_version":"0.1","packet_id":str(uuid.uuid4()),"repository":prof["repository"],"pr_number":a.pr,
+       "base_ref":a.base_ref,"base_sha":a.base_sha,"merge_base_sha":a.merge_base_sha,"head_repository":prof["head_repository"],
+       "head_sha":a.head_sha,"changed_files":changed,
+       "diff":{"member":"diff.patch","sha256":sha(diff),"git_version":git(repo,"--version",text=True).strip(),"flags":DIFF_FLAGS},
+       "governance_profile_sha256":sha(canon(prof)),"governance_refs":gov,"related_context_refs":related,"evaluator_task":prof["evaluator_task"],
+       "allowed_context":["packet_manifest","packet_members","evaluator_task"],
+       "prohibited_context":["producer_self_assessment","producer_prose_pr_body","other_evaluator_verdicts","prior_findings_or_judgments","prior_verdict_prose",
+                             "founder_approval_fields","sealed_truth","secrets_or_credentials","network_access","repository_access_outside_packet"],
+       "review_round":{"round":1,"prior_packet_sha256":None},
+       "producer_identity":{"component":"foundry-packet-builder","version":prof["profile_version"],"build_sha256":build_sha},
+       "completeness":{"complete":True,"truncated":False,"size_bytes":total,"size_limit_bytes":SIZE_LIMIT},
+       "members":[{"name":n,"sha256":sha(d),"size":len(d)} for n,d in sorted(members.items())],
+       "packet_created_at":datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    m["packet_sha256"]=sha(canon(m)); (out/"manifest.json").write_bytes(canon(m))
+    print(json.dumps({"packet_dir":str(out),"packet_sha256":m["packet_sha256"],"builder_sha256":build_sha,
+                      "changed_files":len(changed),"members":len(members),"size_bytes":total},sort_keys=True))
+if __name__=="__main__": main()
