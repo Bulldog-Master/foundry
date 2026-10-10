@@ -1,10 +1,19 @@
 {
   "fixture_version": "0.1",
+  "hash_provenance": [
+    { "implementation": "CPython 3 hashlib.sha256", "command": "python3 verify-conformance-v0.1.py --hash-only", "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423" },
+    { "implementation": "GNU coreutils sha256sum 9.1", "command": "printf '%s' '{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}' | sha256sum", "expected": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423" }
+  ],
   "canonical_json_vectors": [
     {
       "input": { "n": 17, "b": "\"\\\n", "a": "é" },
       "canonical_utf8": "{\"a\":\"é\",\"b\":\"\\\"\\\\\\n\",\"n\":17}",
       "sha256": "61f0f0a9c6a9200a1b355bf2cb39d3b8504483be3098be93742310232ac84423"
+    },
+    {
+      "input": { "😀": "astral", "a": [true, null, { "z": "\t", "é": "雪" }] },
+      "canonical_utf8": "{\"a\":[true,null,{\"z\":\"\\t\",\"é\":\"雪\"}],\"😀\":\"astral\"}",
+      "sha256": "0ad30f2873c37e666ffe14278179de8466e4af837b276bb97065b2a471656b4c"
     }
   ],
   "schema_cases": [
@@ -35,7 +44,7 @@
       "schema": "review-result.schema.json",
       "expected": "INVALID_FINDING_INDEX",
       "mutation_of": "result-valid-pass",
-      "mutation": "add an unindexed finding while all gates remain PASS"
+      "patch": [{ "op": "replace", "path": "/overall", "value": "FAIL" }]
     },
     {
       "id": "invocation-valid-isolated",
@@ -66,12 +75,16 @@
       "schema": "invocation-record.schema.json",
       "expected": "INVALID_CONTEXT",
       "mutation_of": "invocation-valid-isolated",
-      "mutation": "set network_policy to unrestricted and list the observed tool and credential; the instance remains schema-representable but controller-invalid"
+      "patch": [
+        { "op": "replace", "path": "/network_policy", "value": "unrestricted" },
+        { "op": "replace", "path": "/tools_available", "value": ["shell"] },
+        { "op": "replace", "path": "/credentials_present", "value": ["provider-key"] }
+      ]
     },
     {
       "id": "packet-valid-shape",
       "schema": "review-packet.schema.json",
-      "expected": "VALID_SCHEMA_SHAPE",
+      "expected": "VALID",
       "instance": {
         "packet_schema_version": "0.1",
         "packet_id": "00000000-0000-4000-8000-000000000002",
@@ -86,8 +99,9 @@
         "diff": { "member": "diff.patch", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "git_version": "git version 2.53.0", "flags": ["--binary", "--no-ext-diff", "--no-textconv", "--full-index"] },
         "governance_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "governance_refs": [{ "path": "CONSTITUTION.md", "role": "governing", "source_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "member": "governance/base/CONSTITUTION.md" }],
+        "related_context_refs": [],
         "evaluator_task": { "task_id": "example", "version": "0.1", "sha256": "2222222222222222222222222222222222222222222222222222222222222222" },
-        "allowed_context": ["packet_manifest", "packet_members", "evaluator_task", "pr_diff", "changed_file_contents", "governing_refs_at_base"],
+        "allowed_context": ["packet_manifest", "packet_members", "evaluator_task"],
         "prohibited_context": ["producer_self_assessment", "prior_findings_or_judgments", "network_access"],
         "review_round": { "round": 1, "prior_packet_sha256": null },
         "producer_identity": { "component": "foundry-packet-builder", "version": "0.1", "build_sha256": "3333333333333333333333333333333333333333333333333333333333333333" },
@@ -106,15 +120,30 @@
       "schema": "review-packet.schema.json",
       "expected": "INVALID_MALFORMED",
       "mutation_of": "packet-valid-shape",
-      "mutation": "change status to deleted, add base_blob_sha, and retain head fields"
+      "patch": [
+        { "op": "replace", "path": "/changed_files/0/status", "value": "deleted" },
+        { "op": "add", "path": "/changed_files/0/base_blob_sha", "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+      ]
     }
   ],
   "controller_cases": [
-    { "id": "derived-overall-mismatch", "expected": "INVALID_DERIVED_OVERALL" },
-    { "id": "member-hash-mismatch", "expected": "INVALID_MEMBER_CROSS_REFERENCE" },
-    { "id": "evidence-member-missing", "expected": "INVALID_EVIDENCE_REF" },
-    { "id": "first-invalid-attempt", "expected": "RETRY_IDENTICAL" },
-    { "id": "second-invalid-attempt", "expected": "HARD_STOP" },
-    { "id": "stale-head", "expected": "RESEAL_NO_PUBLICATION" }
+    { "id": "derived-overall-mismatch", "input": { "gate_verdicts": ["FAIL", "PASS", "PASS", "PASS"], "reported_overall": "PASS" }, "expected": "INVALID_DERIVED_OVERALL" },
+    { "id": "binding-mismatch", "input": { "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "result_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "INVALID_BINDING_MISMATCH" },
+    { "id": "member-hash-mismatch", "input": { "declared": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "observed": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "INVALID_MEMBER_CROSS_REFERENCE" },
+    { "id": "evidence-member-missing", "input": { "evidence_member": "missing", "members": ["diff.patch"] }, "expected": "INVALID_EVIDENCE_REF" },
+    { "id": "context-mismatch", "input": { "allowed": ["packet_manifest", "packet_members", "evaluator_task"], "observed": ["packet_manifest", "packet_members", "evaluator_task", "other"] }, "expected": "INVALID_CONTEXT" },
+    { "id": "routing-mismatch", "input": { "derived": "HARD_STOP", "reported": "CONTINUE" }, "expected": "INVALID_ROUTING" },
+    { "id": "other-invalidity", "input": { "named_rule": "unclassified fail-closed invariant" }, "expected": "INVALID_OTHER" },
+    { "id": "first-invalid-clean", "input": { "attempt": 1, "parseable_adverse_signals": [] }, "expected": "RETRY_IDENTICAL" },
+    { "id": "first-invalid-adverse", "input": { "attempt": 1, "parseable_adverse_signals": ["security:FAIL"] }, "expected": "HARD_STOP" },
+    { "id": "second-invalid-attempt", "input": { "attempt": 2, "parseable_adverse_signals": [] }, "expected": "HARD_STOP" },
+    { "id": "stale-head", "input": { "packet_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "current_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }, "expected": "RESEAL_NO_PUBLICATION" }
+  ],
+  "routing_cases": [
+    { "input": { "categories": ["RESERVED_ACT_REQUIRED"], "security": "PASS", "severities": ["MAJOR"], "other_gates": ["FAIL"] }, "expected": ["ESCALATE_FOUNDER", true] },
+    { "input": { "categories": ["IMPLEMENTATION_DEFECT"], "security": "FAIL", "severities": ["MAJOR"], "other_gates": [] }, "expected": ["HARD_STOP", true] },
+    { "input": { "categories": ["SPEC_AMBIGUITY"], "security": "PASS", "severities": ["MINOR"], "other_gates": ["FAIL"] }, "expected": ["HARD_STOP", true] },
+    { "input": { "categories": ["IMPLEMENTATION_DEFECT"], "security": "PASS", "severities": ["MAJOR"], "other_gates": ["FAIL"] }, "expected": ["RETURN_TO_OPERATIONS", false] },
+    { "input": { "categories": [], "security": "PASS", "severities": [], "other_gates": [] }, "expected": ["CONTINUE", false] }
   ]
 }

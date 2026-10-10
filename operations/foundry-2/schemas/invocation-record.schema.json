@@ -37,8 +37,7 @@
       }
     },
     "accessible_context": {
-      "type": "array", "uniqueItems": true,
-      "items": { "enum": ["packet_manifest", "packet_members", "evaluator_task", "pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured", "other"] }
+      "const": ["packet_manifest", "packet_members", "evaluator_task"]
     },
     "tools_available": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
     "network_policy": { "enum": ["none", "restricted", "unrestricted", "unknown"] },
