@@ -93,6 +93,9 @@ The controller derives routing from the structured result using this frozen tabl
 
 A Security `FAIL` blocks regardless of other gates and can be bypassed only by a recorded founder override (reserved act 5). Disagreement between multiple evaluators is out of scope for v0.1 and routes `ESCALATE_FOUNDER`.
 
+A finding in category `OTHER` routes `HARD_STOP` with `requires_human = true`.
+A `PASS` or `N/A` gate must carry no findings; otherwise the result is invalid.
+
 ## 9. Malformed, mismatched, or stale results
 
 - Schema-invalid, binding mismatch, or routing mismatch: the result is **invalid**, never reinterpreted or repaired.
