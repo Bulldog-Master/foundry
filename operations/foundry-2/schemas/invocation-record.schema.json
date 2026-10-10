@@ -38,7 +38,7 @@
     },
     "accessible_context": {
       "type": "array", "uniqueItems": true,
-      "items": { "enum": ["pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured"] }
+      "items": { "enum": ["packet_manifest", "packet_members", "pr_diff", "changed_file_contents", "governing_refs_at_base", "subject_governance_refs_at_head", "prior_findings_structured"] }
     },
     "tools_available": { "type": "array", "maxItems": 0 },
     "network_policy": { "const": "none" },
