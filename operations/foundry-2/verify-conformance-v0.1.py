@@ -10,11 +10,16 @@ import sys
 from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = pathlib.Path(__file__).resolve().parent
-V = json.loads((ROOT / "CONFORMANCE-VECTORS-v0.1.json").read_text())
+V = json.loads((ROOT / "CONFORMANCE-VECTORS-v0.1.json").read_text(encoding="utf-8"))
 ALLOWED_CONTEXT = ["packet_manifest", "packet_members", "evaluator_task"]
 GATE_PREFIX = {"architecture": "ARCH", "security": "SEC", "privacy": "PRIV", "quality": "QUAL"}
 HARD_CATEGORIES = {"TRUST_BOUNDARY_DEFECT", "INTEGRITY_ANOMALY", "SPEC_AMBIGUITY", "OTHER"}
 FORMAT_CHECKER = FormatChecker()
+def require(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+
 RFC3339 = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$")
 
 
@@ -29,7 +34,7 @@ def valid_datetime(value):
 def canon(value):
     def reject_surrogates(item):
         if isinstance(item, str):
-            assert not any(0xD800 <= ord(ch) <= 0xDFFF for ch in item), "lone surrogate"
+            require(not any(0xD800 <= ord(ch) <= 0xDFFF for ch in item), "lone surrogate")
         elif isinstance(item, list):
             for child in item:
                 reject_surrogates(child)
@@ -38,9 +43,9 @@ def canon(value):
                 reject_surrogates(key)
                 reject_surrogates(child)
         elif isinstance(item, int):
-            assert -(2**53) + 1 <= item <= (2**53) - 1, "integer outside safe range"
+            require(-(2**53) + 1 <= item <= (2**53) - 1, "integer outside safe range")
         else:
-            assert item is None or isinstance(item, bool), "unsupported JSON number"
+            require(item is None or isinstance(item, bool), "unsupported JSON number")
     reject_surrogates(value)
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
@@ -133,7 +138,10 @@ def semantic_invocation(instance):
     if disclosure["scan_outcome"] == "CLEAN" and private and disclosure["founder_decision_sha256"] is None:
         return "INVALID_OTHER"
     if disclosure["scan_outcome"] == "BLOCKED":
-        return "INVALID_OTHER"
+        if (instance["transport_outcome"] != "NOT_STARTED" or instance["raw_output_bytes"] != 0
+                or instance["raw_output_sha256"] is not None or instance["result_sha256"] is not None):
+            return "INVALID_OTHER"
+        return "VALID"
     if instance["raw_output_bytes"] == 0 and instance["raw_output_sha256"] is not None:
         return "INVALID_OTHER"
     if instance["raw_output_bytes"] > 0 and instance["raw_output_sha256"] is None:
@@ -175,9 +183,14 @@ def adverse_signals(raw):
 
     def walk(item):
         if isinstance(item, dict):
-            if item.get("verdict") == "FAIL":
-                found.add("verdict:FAIL")
-            if item.get("routing") in ("HARD_STOP", "ESCALATE_FOUNDER"):
+            verdict = item.get("verdict")
+            if verdict in ("FAIL", "PASS_WITH_CONDITIONS"):
+                found.add("verdict:" + verdict)
+            if isinstance(item.get("findings"), list) and item["findings"]:
+                found.add("findings:NON_EMPTY")
+            if isinstance(item.get("conditions"), list) and item["conditions"]:
+                found.add("conditions:NON_EMPTY")
+            if item.get("routing") in ("RETURN_TO_OPERATIONS", "HARD_STOP", "ESCALATE_FOUNDER"):
                 found.add("routing:" + item["routing"])
             if item.get("requires_human") is True:
                 found.add("requires_human:true")
@@ -220,9 +233,15 @@ def controller(case):
         return "INVALID_ROUTING" if x["derived"] != x["reported"] else "VALID"
     if "indexed_findings" in x:
         return "INVALID_FINDING_INDEX" if sorted(x["indexed_findings"]) != sorted(x["actual_findings"]) else "VALID"
+    if "prior_valid_non_pass_head" in x:
+        return "VALID" if x.get("founder_exception_recorded") else "HARD_STOP"
+    if "release_bindings" in x:
+        return ("VALID" if all(pair["observed"] == pair["expected"] for pair in x["release_bindings"].values())
+                else "INVALID_RELEASE_DRIFT")
     if "schema_validation" in x:
-        assert x["schema_validation"] != "VALID" and x["raw_output_sha256"] and x["result_sha256"] is None
-        return "INVALID_OUTPUT_RETAINED"
+        return ("INVALID_OUTPUT_RETAINED"
+                if x["schema_validation"] != "VALID" and x["raw_output_sha256"] and x["result_sha256"] is None
+                else "INVALID_OTHER")
     if "current_head" in x:
         return "RESEAL_NO_PUBLICATION" if x["packet_head"] != x["current_head"] else "VALID"
     if x["attempt"] == 2 or x["parseable_adverse_signals"]:
@@ -240,11 +259,11 @@ def main():
 
     for vector in V["canonical_json_vectors"]:
         data = canon(vector["input"])
-        assert data.decode("utf-8") == vector["canonical_utf8"], vector
-        assert hashlib.sha256(data).hexdigest() == vector["sha256"], vector
+        require(data.decode("utf-8") == vector["canonical_utf8"], vector)
+        require(hashlib.sha256(data).hexdigest() == vector["sha256"], vector)
 
     literal = V["canonical_json_vectors"][0]["canonical_utf8"].encode("utf-8")
-    assert V["hash_provenance"][0]["expected"] == hashlib.sha256(literal).hexdigest()
+    require(V["hash_provenance"][0]["expected"] == hashlib.sha256(literal).hexdigest(), "hash provenance")
     if len(sys.argv) > 1 and sys.argv[1] == "--hash-only":
         print(hashlib.sha256(literal).hexdigest())
         return
@@ -254,18 +273,18 @@ def main():
         schema = json.loads((ROOT / "schemas" / case["schema"]).read_text(encoding="utf-8"))
         errors = list(Draft202012Validator(schema, format_checker=FORMAT_CHECKER).iter_errors(instance))
         if case["expected"] == "VALID":
-            assert not errors and semantic_case(case["schema"], instance) == "VALID", case["id"]
+            require(not errors and semantic_case(case["schema"], instance) == "VALID", case["id"])
         elif case["expected"] == "INVALID_MALFORMED":
-            assert errors, case["id"]
+            require(bool(errors), case["id"])
         else:
             # A semantic invariant may also be encoded directly in the schema.
             # The named controller classification must still be derived from the instance.
-            assert semantic_case(case["schema"], instance) == case["expected"], case["id"]
+            require(semantic_case(case["schema"], instance) == case["expected"], case["id"])
 
     for case in V["controller_cases"]:
-        assert controller(case) == case["expected"], case["id"]
+        require(controller(case) == case["expected"], case["id"])
     for case in V["routing_cases"]:
-        assert routing(case["input"]) == case["expected"], case
+        require(routing(case["input"]) == case["expected"], case)
     print("PASS conformance-v0.1")
 
 

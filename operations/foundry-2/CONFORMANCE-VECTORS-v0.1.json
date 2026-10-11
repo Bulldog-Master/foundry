@@ -140,12 +140,14 @@
           "provider": "example",
           "model_id": "example",
           "config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          "system_prompt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evaluator_task_sha256": "abababababababababababababababababababababababababababababababab",
+          "governance_profile_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
         },
         "environment": {
-          "session_id_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
           "runtime_image_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-          "host_id_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          "session_id_hmac_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "host_id_hmac_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
         },
         "accessible_context": [
           "packet_manifest",
@@ -342,6 +344,115 @@
     },
     {
       "id": "invocation-blocked-not-transmittable",
+      "schema": "invocation-record.schema.json",
+      "expected": "VALID",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/scan_outcome",
+          "value": "BLOCKED"
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/matched_rule_ids",
+          "value": [
+            "PRIVATE_KEY"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/transport_outcome",
+          "value": "NOT_STARTED"
+        },
+        {
+          "op": "replace",
+          "path": "/raw_output_bytes",
+          "value": 0
+        },
+        {
+          "op": "replace",
+          "path": "/raw_output_sha256",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/result_sha256",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/schema_validation",
+          "value": "INVALID_OTHER"
+        },
+        {
+          "op": "replace",
+          "path": "/routing_check",
+          "value": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    {
+      "id": "invocation-invalid-private-clean-no-decision",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_OTHER",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/repository_visibility",
+          "value": "PRIVATE"
+        }
+      ]
+    },
+    {
+      "id": "invocation-invalid-internal-clean-no-decision",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_OTHER",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/repository_visibility",
+          "value": "INTERNAL"
+        }
+      ]
+    },
+    {
+      "id": "invocation-invalid-private-fork-clean-no-decision",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_OTHER",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/fork_visibility",
+          "value": "PRIVATE"
+        }
+      ]
+    },
+    {
+      "id": "invocation-invalid-match-without-decision",
+      "schema": "invocation-record.schema.json",
+      "expected": "INVALID_OTHER",
+      "mutation_of": "invocation-valid-isolated",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/scan_outcome",
+          "value": "MATCH_AUTHORIZED"
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/matched_rule_ids",
+          "value": [
+            "PERSONAL_DATA"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invocation-invalid-blocked-with-transport",
       "schema": "invocation-record.schema.json",
       "expected": "INVALID_OTHER",
       "mutation_of": "invocation-valid-isolated",
@@ -715,6 +826,94 @@
         "attempt": 1
       },
       "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-pass-with-conditions",
+      "input": {
+        "attempt": 1,
+        "raw_output": "{\"gates\":{\"quality\":{\"verdict\":\"PASS_WITH_CONDITIONS\",\"conditions\":[\"fix\"]}}}"
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-findings",
+      "input": {
+        "attempt": 1,
+        "raw_output": "{\"findings\":[{\"severity\":\"MINOR\",\"category\":\"IMPLEMENTATION_DEFECT\"}]}"
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-return-to-operations",
+      "input": {
+        "attempt": 1,
+        "raw_output": "{\"routing\":\"RETURN_TO_OPERATIONS\"}"
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "release-binding-drift",
+      "input": {
+        "release_bindings": {
+          "task": {
+            "expected": "a",
+            "observed": "b"
+          },
+          "config": {
+            "expected": "c",
+            "observed": "c"
+          },
+          "profile": {
+            "expected": "d",
+            "observed": "d"
+          },
+          "runtime": {
+            "expected": "e",
+            "observed": "e"
+          }
+        }
+      },
+      "expected": "INVALID_RELEASE_DRIFT"
+    },
+    {
+      "id": "release-bindings-match",
+      "input": {
+        "release_bindings": {
+          "task": {
+            "expected": "a",
+            "observed": "a"
+          },
+          "config": {
+            "expected": "c",
+            "observed": "c"
+          },
+          "profile": {
+            "expected": "d",
+            "observed": "d"
+          },
+          "runtime": {
+            "expected": "e",
+            "observed": "e"
+          }
+        }
+      },
+      "expected": "VALID"
+    },
+    {
+      "id": "same-head-valid-non-pass-blocked",
+      "input": {
+        "prior_valid_non_pass_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "founder_exception_recorded": false
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "same-head-valid-non-pass-founder-exception",
+      "input": {
+        "prior_valid_non_pass_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "founder_exception_recorded": true
+      },
+      "expected": "VALID"
     }
   ],
   "routing_cases": [
