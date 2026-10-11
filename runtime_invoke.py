@@ -10,6 +10,21 @@ API_URL = 'https://api.anthropic.com/v1/messages'
 
 def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
+def verdict_text(content):
+    """Ignore provider reasoning envelopes; verdict bytes come only from text."""
+    if not isinstance(content, list): raise Reject('unexpected provider content')
+    texts = []
+    for block in content:
+        if not isinstance(block, dict): raise Reject('unexpected provider content')
+        kind = block.get('type')
+        if kind == 'text':
+            if not isinstance(block.get('text'), str): raise Reject('invalid provider text')
+            texts.append(block['text'])
+        elif kind not in ('thinking', 'redacted_thinking'):
+            raise Reject('unexpected provider content')
+    if not texts or not ''.join(texts).strip(): raise Reject('missing provider text')
+    return ''.join(texts)
+
 def scan(chunks):
     rules = {
         'PRIVATE_KEY':r'-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----',
@@ -102,8 +117,7 @@ def main(argv):
             if response.get('stop_reason')!='end_turn':
                 scan_outcome,signals='INDETERMINATE',[]
                 raise Reject('truncated or incomplete output')
-            if not isinstance(response.get('content'),list) or any(b.get('type')!='text' for b in response['content']): raise Reject('unexpected provider content')
-            text=''.join(b['text'] for b in response['content'])
+            text=verdict_text(response.get('content'))
             scan_outcome,signals=adverse(text.encode())
             result=parse(text.encode()); validate_result(result,m,members)
             validation='VALID'; routecheck='MATCHES_TABLE'

@@ -91,6 +91,42 @@ class RuntimeTests(unittest.TestCase):
         with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
         return rc,json.loads(out.getvalue())
     def record(self,n=1): return c.parse((self.work/'runs'/self.m['packet_sha256']/('attempt-%d'%n)/'invocation-record.json').read_bytes())
+    def test_reasoning_envelopes_extract_only_text_and_preserve_raw(self):
+        text=c.canon(self.result).decode(); split=len(text)//2
+        blocks=[{'type':'thinking','thinking':'{"verdict":"FAIL"}','signature':'opaque'},
+                {'type':'text','text':text[:split]},
+                {'type':'redacted_thinking','data':'opaque'},
+                {'type':'text','text':text[split:]}]
+        raw=c.canon({'model':'claude-opus-5-5','content':blocks,'stop_reason':'end_turn'})
+        self.responses=[Response(raw)]; self.assertEqual(self.invoke()[0],0)
+        self.assertEqual(self.record()['schema_validation'],'VALID')
+        self.assertEqual(self.record()['adverse_signal_scan']['outcome'],'NONE')
+        adir=self.work/'runs'/self.m['packet_sha256']/'attempt-1'
+        self.assertEqual((adir/'raw-response.json').read_bytes(),raw)
+        self.assertEqual((adir/'result.json').read_bytes(),c.canon(self.result))
+        self.assertEqual(self.record()['raw_output_sha256'],c.sha(raw))
+    def test_reasoning_envelopes_do_not_bypass_verdict_validation(self):
+        self.result['head_sha']='d'*40
+        blocks=[{'type':'thinking','thinking':c.canon({'verdict':'PASS'}).decode()},
+                {'type':'text','text':c.canon(self.result).decode()}]
+        self.responses=[Response(c.canon({'model':'claude-opus-5-5','content':blocks,'stop_reason':'end_turn'}))]
+        self.assertNotEqual(self.invoke()[0],0)
+        self.assertEqual(self.record()['schema_validation'],'INVALID_MALFORMED')
+    def test_content_rejects_tools_unknown_and_malformed_blocks(self):
+        text={'type':'text','text':c.canon(self.result).decode()}
+        for block in ({'type':'tool_use','id':'x','name':'x','input':{}},
+                      {'type':'server_tool_use'}, {'type':'future_block'}, {}, None, 'text',
+                      {'type':'text'}, {'type':'text','text':None}, {'type':'text','text':7}):
+            with self.subTest(block=block), self.assertRaises(c.Reject):
+                inv.verdict_text([text,block])
+        for content in (None,{},[],[{'type':'thinking'}],[{'type':'redacted_thinking'}],
+                        [{'type':'text','text':' '} ]):
+            with self.subTest(content=content), self.assertRaises(c.Reject): inv.verdict_text(content)
+    def test_tool_use_envelope_never_validates(self):
+        blocks=[{'type':'text','text':c.canon(self.result).decode()}, {'type':'tool_use','id':'x','name':'x','input':{}}]
+        self.responses=[Response(c.canon({'model':'claude-opus-5-5','content':blocks,'stop_reason':'end_turn'}))]
+        self.assertNotEqual(self.invoke()[0],0)
+        self.assertEqual(self.record()['schema_validation'],'INVALID_MALFORMED')
     def test_valid_no_tools_minimized_record_and_no_redraw(self):
         self.responses=[self.response()]; rc,out=self.invoke(); self.assertEqual(rc,0)
         record=self.record(); c.schema('invocation-record.schema.json',record)
