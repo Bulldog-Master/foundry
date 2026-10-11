@@ -212,6 +212,10 @@
           "items": {
             "enum": [
               "verdict:FAIL",
+              "security.verdict:N/A",
+              "routing:HARD_STOP",
+              "routing:ESCALATE_FOUNDER",
+              "requires_human:true",
               "severity:CRITICAL",
               "category:TRUST_BOUNDARY_DEFECT",
               "category:INTEGRITY_ANOMALY",

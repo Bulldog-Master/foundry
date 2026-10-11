@@ -177,10 +177,17 @@ def adverse_signals(raw):
         if isinstance(item, dict):
             if item.get("verdict") == "FAIL":
                 found.add("verdict:FAIL")
+            if item.get("routing") in ("HARD_STOP", "ESCALATE_FOUNDER"):
+                found.add("routing:" + item["routing"])
+            if item.get("requires_human") is True:
+                found.add("requires_human:true")
+            security = item.get("security")
+            if isinstance(security, dict) and security.get("verdict") == "N/A":
+                found.add("security.verdict:N/A")
             if item.get("severity") == "CRITICAL":
                 found.add("severity:CRITICAL")
             category = item.get("category")
-            if category in HARD_CATEGORIES | {"RESERVED_ACT_REQUIRED"}:
+            if isinstance(category, str) and category in HARD_CATEGORIES | {"RESERVED_ACT_REQUIRED"}:
                 found.add("category:" + category)
             for child in item.values():
                 walk(child)

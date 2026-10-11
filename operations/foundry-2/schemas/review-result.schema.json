@@ -809,6 +809,21 @@
             "required": [
               "security"
             ]
+          },
+          "findings": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "const": "RESERVED_ACT_REQUIRED"
+                  }
+                },
+                "required": [
+                  "category"
+                ]
+              }
+            }
           }
         }
       },
