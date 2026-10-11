@@ -137,6 +137,8 @@ def semantic_invocation(instance):
         return "INVALID_OTHER"
     if disclosure["scan_outcome"] == "CLEAN" and private and disclosure["founder_decision_sha256"] is None:
         return "INVALID_OTHER"
+    if disclosure["scan_outcome"] == "MATCH_AUTHORIZED" and disclosure["founder_decision_sha256"] is None:
+        return "INVALID_OTHER"
     if disclosure["scan_outcome"] == "BLOCKED":
         if (instance["transport_outcome"] != "NOT_STARTED" or instance["raw_output_bytes"] != 0
                 or instance["raw_output_sha256"] is not None or instance["result_sha256"] is not None):
