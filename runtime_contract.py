@@ -109,6 +109,10 @@ def adverse(raw):
         if isinstance(x, dict):
             for key, choices in [('verdict',{'FAIL'}),('severity',{'CRITICAL'}),('category',HARD|{'RESERVED_ACT_REQUIRED'})]:
                 if isinstance(x.get(key), str) and x[key] in choices: signals.add(key+':'+x[key])
+            if x.get('routing') in ('HARD_STOP','ESCALATE_FOUNDER'): signals.add('routing:'+x['routing'])
+            if x.get('requires_human') is True: signals.add('requires_human:true')
+            security=x.get('security')
+            if isinstance(security,dict) and security.get('verdict')=='N/A': signals.add('security.verdict:N/A')
             for v in x.values(): walk(v)
         elif isinstance(x,list):
             for v in x: walk(v)
@@ -180,7 +184,7 @@ def verify_release(release):
         source=release/'source'/name
         if sha(read_root(source))!=digest: raise Reject('frozen source drift: '+name)
         if name.startswith('schemas/'): installed=release/name
-        elif name in ('runtime_contract.py','runtime_invoke.py') or name.startswith('foundry-') and '.' not in name:
+        elif name in ('runtime_contract.py','runtime_invoke.py','provider_envelope.py') or name.startswith('foundry-') and '.' not in name:
             installed=release/'bin'/name
         elif name=='bootstrap0b-profile.json': installed=release/'profile.json'
         elif name in ('config.json','evaluator-task.md','provider-terms.json'): installed=release/name

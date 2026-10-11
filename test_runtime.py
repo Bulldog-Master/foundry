@@ -197,6 +197,93 @@ class RuntimeTests(unittest.TestCase):
         for raw in (b'{"a":1,"a":2}',b'{"a":NaN}',b'{"a":1.2}',b'{"a":9007199254740992}',b'{"a":"\\ud800"}'):
             with self.assertRaises(ValueError): c.parse(raw)
         self.assertEqual(c.adverse(b'{"nested":[{"category":"TRUST_BOUNDARY_DEFECT"}]}'),('ADVERSE',['category:TRUST_BOUNDARY_DEFECT']))
+    def test_new_adverse_signals_block_invalid_retry(self):
+        for value,signal in [({'gates':{'security':{'verdict':'N/A'}}},'security.verdict:N/A'),
+                             ({'routing':'HARD_STOP'},'routing:HARD_STOP'),
+                             ({'routing':'ESCALATE_FOUNDER'},'routing:ESCALATE_FOUNDER'),
+                             ({'requires_human':True},'requires_human:true')]:
+            with self.subTest(signal=signal):
+                self.assertEqual(c.adverse(c.canon(value)),('ADVERSE',[signal]))
+    def test_reserved_act_precedes_security_na_schema(self):
+        vectors=json.loads((HERE/'CONFORMANCE-VECTORS-v0.1.json').read_text())
+        result=next(x['instance'] for x in vectors['schema_cases'] if x['id']=='security-na-reserved-act')
+        c.schema('review-result.schema.json',result)
+        self.assertEqual(c.routing(result),('ESCALATE_FOUNDER',True))
+    def test_shared_parser_publishes_reasoning_envelope(self):
+        from provider_envelope import provider_response
+        pub,run_dir=self.publisher_fixture()
+        # Recreate the fixture using the same raw provider envelope in both consumers.
+        raw=c.canon({'model':'claude-opus-5-5','stop_reason':'end_turn','content':[
+            {'type':'thinking','thinking':'opaque','signature':'sig'},
+            {'type':'redacted_thinking','data':'opaque'},
+            {'type':'text','text':c.canon(self.result).decode()}]})
+        adir=pathlib.Path(run_dir); record=c.parse((adir/'invocation-record.json').read_bytes())
+        record['raw_output_sha256']=c.sha(raw);record['raw_output_bytes']=len(raw)
+        record.pop('review_record_sha256'); record['review_record_sha256']=c.sha(c.canon({'packet_sha256':self.m['packet_sha256'],'result_sha256':record['result_sha256'],'invocation_record_without_hash':record}))
+        for name,data in [('raw-response.json',raw),('invocation-record.json',c.canon(record))]:
+            (adir/name).chmod(0o600);(adir/name).write_bytes(data)
+        self.assertIs(pub.provider_response,provider_response)
+        self.assertIs(inv.provider_response,provider_response)
+        seen=[];pub.api=self.fake_app_api(seen)
+        with patch.object(pub.sys,'argv',['publish',str(self.packet),run_dir]),contextlib.redirect_stdout(io.StringIO()):pub.main()
+        self.assertEqual((adir/'raw-response.json').read_bytes(),raw)
+    def test_retained_release_selection_binds_historical_validators(self):
+        pub,run_dir=self.publisher_fixture()
+        old=self.work/'historical';(old/'bin').mkdir(parents=True)
+        for name in ('runtime_contract.py','runtime_invoke.py'):
+            data=subprocess.check_output(['git','show','1dfa5310228d8309c5450cf93a090c6d21b7b1ba:'+name],cwd=HERE)
+            (old/'bin'/name).write_bytes(data)
+        (old/'MANIFEST.sha256').write_bytes(b'pinned fixture manifest')
+        recordpath=pathlib.Path(run_dir)/'invocation-record.json';record=c.parse(recordpath.read_bytes());record['attempt']=2
+        recordpath.chmod(0o600);recordpath.write_bytes(c.canon(record))
+        pub.RECOVERY_RELEASE_PATH=str(old);pub.RECOVERY_MANIFEST=c.sha(b'pinned fixture manifest');pub.RECOVERY_PACKET=self.m['packet_sha256']
+        pub.select_retained_release(str(old),str(self.packet),run_dir)
+        self.assertEqual(pub.TASK,str(old/'evaluator-task.md'))
+        self.assertEqual(pub.adverse(b'{"requires_human":true}'),('NONE',[]))
+        self.assertEqual(c.adverse(b'{"requires_human":true}'),('ADVERSE',['requires_human:true']))
+        self.assertEqual(pub.schema.__globals__['HERE'],old/'bin')
+        # Validate and publish a retained attempt with old scanner/image/scan bindings.
+        import shutil
+        for name in ('profile.json','evaluator-task.md','config.json','provider-terms.json','RUNTIME.json'):
+            shutil.copyfile(self.release/name,old/name)
+        shutil.copytree(HERE/'schemas',old/'schemas')
+        pub.validate_packet.__globals__['read_root']=fixture_read
+        pub.scan.__globals__['read_root']=fixture_read
+        (old/'bin'/'foundry-packet-builder').write_bytes((HERE/'foundry-packet-builder').read_bytes())
+        previous=copy.deepcopy(record);previous.update(attempt=1,result_sha256=None,schema_validation='INVALID_MALFORMED',routing_check='NOT_APPLICABLE',raw_output_sha256=c.sha(b'{}'),raw_output_bytes=2)
+        previous.pop('review_record_sha256');previous['review_record_sha256']=c.sha(c.canon({'packet_sha256':self.m['packet_sha256'],'result_sha256':None,'invocation_record_without_hash':previous}))
+        prevdir=pathlib.Path(run_dir); nextdir=prevdir.parent/'attempt-2';nextdir.mkdir()
+        for name,data in [('raw-response.json',b'{}'),('invocation-record.json',c.canon(previous))]:
+            (prevdir/name).chmod(0o600);(prevdir/name).write_bytes(data)
+        self.result['gates']['security']={'verdict':'FAIL','finding_ids':['FND-SEC-001']}
+        self.result.update(overall='FAIL',routing='HARD_STOP',requires_human=True,findings=[{'finding_id':'FND-SEC-001','gate':'security','severity':'MAJOR','category':'IMPLEMENTATION_DEFECT','title':'Unsafe retry','detail':'Retained failure','evidence_refs':[{'member':'files/a.md','line_start':1,'line_end':1}]}])
+        record['result_sha256']=c.sha(c.canon(self.result))
+        record['adverse_signal_scan']={'algorithm_version':'0.1','outcome':'ADVERSE','matched_signals':['verdict:FAIL']}
+        raw=c.canon({'model':'claude-opus-5-5','stop_reason':'end_turn','content':[{'type':'thinking','thinking':'opaque','signature':'sig'},{'type':'text','text':c.canon(self.result).decode()}]})
+        record['pre_transmission_disclosure']['scanner_sha256']=c.sha((old/'bin'/'runtime_invoke.py').read_bytes())
+        record['environment']['runtime_image_sha256']=c.sha((old/'RUNTIME.json').read_bytes()+(old/'MANIFEST.sha256').read_bytes())
+        record.update(raw_output_sha256=c.sha(raw),raw_output_bytes=len(raw))
+        record.pop('review_record_sha256');record['review_record_sha256']=c.sha(c.canon({'packet_sha256':self.m['packet_sha256'],'result_sha256':record['result_sha256'],'invocation_record_without_hash':record}))
+        for name,data in [('raw-response.json',raw),('invocation-record.json',c.canon(record)),('result.json',c.canon(self.result))]: (nextdir/name).write_bytes(data)
+        pub.validate_evidence(str(self.packet),str(nextdir))
+        seen=[];pub.api=self.fake_app_api(seen)
+        with patch.object(pub.sys,'argv',['publish',str(self.packet),str(nextdir)]),contextlib.redirect_stdout(io.StringIO()):pub.main()
+        self.assertEqual((nextdir/'raw-response.json').read_bytes(),raw)
+        self.assertEqual(next(x[2]['conclusion'] for x in seen if x[1].endswith('/check-runs')),'failure')
+        self.assertEqual(next(x[2]['event'] for x in seen if x[1].endswith('/reviews')),'REQUEST_CHANGES')
+
+    def test_malformed_reasoning_envelope_is_indeterminate(self):
+        for block in ({'type':'thinking','thinking':None},{'type':'redacted_thinking','data':7}):
+            with self.subTest(block=block),self.assertRaises(c.Reject):
+                inv.provider_response(c.canon({'model':'claude-opus-5-5','stop_reason':'end_turn','content':[block,{'type':'text','text':'{}'}]}))
+    def test_retained_release_rejects_unpinned_path_before_loading(self):
+        pub,run_dir=self.publisher_fixture()
+        with self.assertRaisesRegex(c.Reject,'unapproved evidence release'):
+            pub.select_retained_release(str(self.release),str(self.packet),run_dir)
+    def test_poll_requires_activation_authority(self):
+        proc=subprocess.run([sys.executable,str(HERE/'foundry-evaluator-poll')],capture_output=True,text=True)
+        self.assertNotEqual(proc.returncode,0)
+        self.assertIn('no activation authority',proc.stderr)
     def test_publisher_revalidates_record_raw_context_and_routing(self):
         self.responses=[self.response()]; _,out=self.invoke()
         pub=load('foundry-evaluator-publish'); pub.PROFILE=str(self.release/'profile.json'); pub.TASK=str(self.release/'evaluator-task.md')

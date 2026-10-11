@@ -1,5 +1,6 @@
 """Root-custodied one-shot transport; no autonomous activation."""
 import datetime, fcntl, json, math, os, pathlib, re, socket, sys, urllib.error, urllib.request, uuid
+from provider_envelope import provider_response, verdict_text
 from runtime_contract import ALLOWED, Reject, adverse, canon, parse, put, read_root, schema, sha, validate_packet, validate_result, verify_release
 
 ETC = pathlib.Path('/etc/foundry-evaluator')
@@ -10,20 +11,6 @@ API_URL = 'https://api.anthropic.com/v1/messages'
 
 def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-def verdict_text(content):
-    """Ignore provider reasoning envelopes; verdict bytes come only from text."""
-    if not isinstance(content, list): raise Reject('unexpected provider content')
-    texts = []
-    for block in content:
-        if not isinstance(block, dict): raise Reject('unexpected provider content')
-        kind = block.get('type')
-        if kind == 'text':
-            if not isinstance(block.get('text'), str): raise Reject('invalid provider text')
-            texts.append(block['text'])
-        elif kind not in ('thinking', 'redacted_thinking'):
-            raise Reject('unexpected provider content')
-    if not texts or not ''.join(texts).strip(): raise Reject('missing provider text')
-    return ''.join(texts)
 
 def scan(chunks):
     rules = {
@@ -78,9 +65,19 @@ def main(argv):
         if (run_dir/'attempt-1').exists():
             try: previous=parse(read_root(run_dir/'attempt-1/invocation-record.json'))
             except (ValueError,OSError): raise Reject('HARD_STOP: interrupted prior attempt')
+            if previous['schema_validation']=='VALID': raise Reject('valid result already exists; never re-run')
+            schema('invocation-record.schema.json',previous)
+            prevraw=read_root(run_dir/'attempt-1/raw-response.json')
+            prevbody=dict(previous); prevhash=prevbody.pop('review_record_sha256')
+            if previous['attempt']!=1 or previous['packet_sha256']!=m['packet_sha256'] or previous['result_sha256'] is not None: raise Reject('HARD_STOP: retry binding')
+            if previous['raw_output_bytes']!=len(prevraw) or previous['raw_output_sha256']!=(sha(prevraw) if prevraw else None): raise Reject('HARD_STOP: retry raw binding')
+            if sha(canon({'packet_sha256':m['packet_sha256'],'result_sha256':None,'invocation_record_without_hash':prevbody}))!=prevhash: raise Reject('HARD_STOP: retry record hash')
+            if previous['accessible_context']!=ALLOWED or previous['tools_available'] or previous['credentials_present'] or previous['network_policy']!='none': raise Reject('HARD_STOP: retry context')
             if previous['evaluator']['config_sha256']!=sha(canon(cfg)) or previous['evaluator']['system_prompt_sha256']!=sha(task): raise Reject('HARD_STOP: retry configuration drift')
             if previous['schema_validation']=='VALID': raise Reject('valid result already exists; never re-run')
             if previous['transport_outcome']!='COMPLETED' or previous['adverse_signal_scan']['outcome']!='NONE': raise Reject('HARD_STOP: adverse or indeterminate prior output')
+            _,prior_text=provider_response(prevraw,cfg['model'])
+            if adverse(prior_text)!=('NONE',[]): raise Reject('HARD_STOP: prior adverse output')
             if (run_dir/'attempt-2').exists(): raise Reject('HARD_STOP: attempts exhausted')
         attempt=2 if previous else 1
         adir=run_dir/('attempt-%d'%attempt); adir.mkdir(mode=0o700)
@@ -110,16 +107,14 @@ def main(argv):
         scan_outcome,signals=adverse(raw)
         try:
             if outcome!='COMPLETED': raise Reject('transport '+outcome)
-            response=parse(raw); model=response.get('model','unknown')
-            if not isinstance(model,str): model='invalid-model-metadata'
-            if not (model==cfg['model'] or re.fullmatch(re.escape(cfg['model'])+r'-\d{8}',model)):
-                raise Reject('unexpected provider model')
-            if response.get('stop_reason')!='end_turn':
+            try:
+                response,text=provider_response(raw,cfg['model'])
+            except Exception:
                 scan_outcome,signals='INDETERMINATE',[]
-                raise Reject('truncated or incomplete output')
-            text=verdict_text(response.get('content'))
-            scan_outcome,signals=adverse(text.encode())
-            result=parse(text.encode()); validate_result(result,m,members)
+                raise
+            model=response['model']
+            scan_outcome,signals=adverse(text)
+            result=parse(text); validate_result(result,m,members)
             validation='VALID'; routecheck='MATCHES_TABLE'
         except Exception as e: errors.append(type(e).__name__+': '+str(e)[:1000])
         if outcome!='COMPLETED': scan_outcome,signals='INDETERMINATE',[]

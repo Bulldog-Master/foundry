@@ -47,7 +47,7 @@ else
   "$release/venv/bin/python" verify-conformance-v0.1.py
   "$release/venv/bin/python" -m unittest -v test_runtime.py
   install -o root -g root -m 0500 foundry-packet-builder foundry-evaluator-invoke foundry-evaluator-publish foundry-evaluator-run foundry-evaluator-poll "$release/bin/"
-  install -o root -g root -m 0400 runtime_contract.py runtime_invoke.py "$release/bin/"
+  install -o root -g root -m 0400 runtime_contract.py runtime_invoke.py provider_envelope.py "$release/bin/"
   install -o root -g root -m 0400 bootstrap0b-profile.json "$release/profile.json"
   install -o root -g root -m 0400 evaluator-task.md provider-terms.json config.json MANIFEST.sha256 "$release/"
   install -o root -g root -m 0400 schemas/*.json "$release/schemas/"

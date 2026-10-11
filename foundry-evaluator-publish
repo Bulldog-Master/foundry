@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from jsonschema import Draft202012Validator
 from runtime_contract import ALLOWED, parse, put, read_root, schema, validate_packet, validate_result, adverse, Reject, verify_release
 from runtime_invoke import scan
+from provider_envelope import provider_response
 
 ETC = "/etc/foundry-evaluator"
 APP_CONFIG = ETC + "/github-app.json"
@@ -15,6 +16,7 @@ RELEASE=pathlib.Path(__file__).resolve().parent.parent
 SCHEMA_DIR=str(RELEASE/'schemas')
 PROFILE=str(RELEASE/'profile.json')
 TASK=str(RELEASE/'evaluator-task.md')
+SCANNER=pathlib.Path(__file__).resolve().parent/'runtime_invoke.py'
 API = "https://api.github.com"
 VERSION = "2022-11-28"
 H64 = re.compile(r"^[0-9a-f]{64}$")
@@ -76,6 +78,7 @@ def validate_evidence(packet_dir, run_dir):
     validate_result(result,m,members)
     if record['accessible_context']!=ALLOWED or record['tools_available'] or record['credentials_present'] or record['network_policy']!='none': raise Reject('context violation')
     if record['prior_exposure']['known_prior_sessions_on_this_pr']: raise Reject('prior exposure requires human eligibility review')
+    if record['transport_outcome']!='COMPLETED': raise Reject('incomplete transport')
     if record['packet_sha256']!=m['packet_sha256'] or record['schema_validation']!='VALID' or record['routing_check']!='MATCHES_TABLE': raise Reject('invalid evaluation')
     if record['evaluator']['system_prompt_sha256']!=sha(task): raise Reject('prompt mismatch')
     config = load_json(os.path.dirname(TASK)+'/config.json')
@@ -83,9 +86,7 @@ def validate_evidence(packet_dir, run_dir):
     if record['environment']['runtime_image_sha256']!=sha(read_root_file(os.path.dirname(TASK)+'/RUNTIME.json')+read_root_file(os.path.dirname(TASK)+'/MANIFEST.sha256')): raise Reject('runtime image binding')
     raw = read_root_file(run_dir+'/raw-response.json')
     if record['raw_output_sha256']!=sha(raw) or record['raw_output_bytes']!=len(raw): raise Reject('raw output mismatch')
-    response=parse(raw)
-    if response.get('stop_reason')!='end_turn' or any(b.get('type')!='text' for b in response['content']): raise Reject('incomplete output')
-    text=''.join(b['text'] for b in response['content']).encode()
+    response,text=provider_response(raw,config['model'])
     if parse(text)!=result: raise Reject('raw/result mismatch')
     if response.get('model')!=record['evaluator']['model_id']: raise Reject('observed model binding')
     outcome,signals=adverse(text)
@@ -94,15 +95,50 @@ def validate_evidence(packet_dir, run_dir):
     if disclosure['packet_sha256']!=m['packet_sha256'] or disclosure['scan_outcome']!='CLEAN' or disclosure['repository_visibility']!='PUBLIC' or disclosure['fork_visibility']!='NOT_A_FORK' or not disclosure['provider_terms_accepted']: raise Reject('disclosure failure')
     if disclosure['provider_terms_sha256']!=sha(read_root_file(os.path.dirname(TASK)+'/provider-terms.json')): raise Reject('provider terms mismatch')
     chunks=[jcs(m),*members.values(),task]
-    scanner=pathlib.Path(__file__).resolve().parent/'runtime_invoke.py'
+    scanner=SCANNER
     if disclosure['scanner_sha256']!=sha(read_root_file(scanner)) or scan(chunks) or disclosure['members_scanned']!=len(chunks) or disclosure['bytes_scanned']!=sum(map(len,chunks)): raise Reject('disclosure scan binding')
     rsha=sha(jcs(result))
     rr=dict(record); rrhash=rr.pop('review_record_sha256')
     if record['result_sha256']!=rsha or sha(jcs({'packet_sha256':m['packet_sha256'],'result_sha256':rsha,'invocation_record_without_hash':rr}))!=rrhash: raise Reject('review record hash')
     if record['attempt']==2:
         previous=load_json(os.path.dirname(run_dir)+'/attempt-1/invocation-record.json')
+        schema('invocation-record.schema.json',previous)
+        prevdir=pathlib.Path(run_dir).parent/'attempt-1'
+        prevraw=read_root_file(prevdir/'raw-response.json')
+        prevbody=dict(previous); prevhash=prevbody.pop('review_record_sha256')
+        if previous['attempt']!=1 or previous['packet_sha256']!=m['packet_sha256'] or previous['result_sha256'] is not None or previous['evaluator']['system_prompt_sha256']!=record['evaluator']['system_prompt_sha256']: raise Reject('retry binding')
+        if previous['raw_output_bytes']!=len(prevraw) or previous['raw_output_sha256']!=(sha(prevraw) if prevraw else None): raise Reject('retry raw binding')
+        if sha(jcs({'packet_sha256':m['packet_sha256'],'result_sha256':None,'invocation_record_without_hash':prevbody}))!=prevhash: raise Reject('retry record hash')
         if previous['schema_validation']=='VALID' or previous['adverse_signal_scan']['outcome']!='NONE' or previous['transport_outcome']!='COMPLETED' or previous['evaluator']['config_sha256']!=record['evaluator']['config_sha256']: raise Reject('ineligible retry')
     return m,result,record,rsha,rrhash
+
+
+RECOVERY_MANIFEST='258fdf6813af1353efebd134e2a3ba46cbfbe4e24776ae1307e300ab460e224a'
+RECOVERY_RELEASE_PATH='/opt/foundry-evaluator/releases/'+RECOVERY_MANIFEST
+RECOVERY_PACKET='f1efc313cd27a05e84b85c48438137aae2ea8bcb32f4b7b10a928a3aeffebf8b'
+
+def select_retained_release(path, packet_dir, run_dir):
+    """Explicit compatibility for one retained result; never rewrites its evidence."""
+    global PROFILE, TASK, SCANNER, schema, validate_packet, validate_result, adverse, scan
+    release=pathlib.Path(path)
+    if str(release)!=RECOVERY_RELEASE_PATH: raise Reject('unapproved evidence release')
+    if sha(read_root_file(release/'MANIFEST.sha256'))!=RECOVERY_MANIFEST: raise Reject('evidence release manifest mismatch')
+    verify_release(release)
+    manifest=load_json(str(pathlib.Path(packet_dir)/'manifest.json'))
+    record=load_json(str(pathlib.Path(run_dir)/'invocation-record.json'))
+    if manifest['packet_sha256']!=RECOVERY_PACKET or record['packet_sha256']!=RECOVERY_PACKET or record['attempt']!=2 or record['schema_validation']!='VALID': raise Reject('unapproved retained evidence')
+    import importlib.util
+    def trusted_module(name):
+        file=release/'bin'/name
+        read_root_file(file)
+        spec=importlib.util.spec_from_file_location('retained_'+name[:-3],file)
+        module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        return module
+    contract=trusted_module('runtime_contract.py')
+    invocation=trusted_module('runtime_invoke.py')
+    PROFILE=str(release/'profile.json'); TASK=str(release/'evaluator-task.md'); SCANNER=release/'bin'/'runtime_invoke.py'
+    schema=contract.schema; validate_packet=contract.validate_packet
+    validate_result=contract.validate_result; adverse=contract.adverse; scan=invocation.scan
 
 
 def render(result, packet_sha, result_sha, record_sha):
@@ -138,10 +174,14 @@ def validate_controller_stop(packet_dir,run_dir):
 def main():
     os.umask(0o077)
     if os.geteuid()!=0: raise Reject('must run as root')
+    retained=len(sys.argv)==5 and sys.argv[1]=='--retained-release'
+    if retained:
+        evidence_release=sys.argv[2]; sys.argv=[sys.argv[0],*sys.argv[3:]]
     controller_stop=len(sys.argv)==4 and sys.argv[1]=='--controller-stop'
     if controller_stop: sys.argv=[sys.argv[0],*sys.argv[2:]]
     if len(sys.argv) != 3: raise SystemExit("usage: foundry-evaluator-publish [--controller-stop] PACKET_DIR RUN_DIR")
     verify_release(RELEASE)
+    if retained: select_retained_release(evidence_release,os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2]))
     cfg = load_json(APP_CONFIG)
     if cfg != {'app_id':5263160,'installation_id':169955633,'repository_id':1297877588,'owner':'Bulldog-Master','repo':'foundry'}: raise Reject('unapproved App configuration')
     if controller_stop:

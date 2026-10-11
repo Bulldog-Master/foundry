@@ -103,10 +103,28 @@
       "expected": "VALID",
       "mutation_of": "result-valid-pass",
       "patch": [
-        {"op": "replace", "path": "/gates/security/verdict", "value": "PASS_WITH_CONDITIONS"},
-        {"op": "add", "path": "/gates/security/conditions", "value": ["Complete the stated condition"]},
-        {"op": "replace", "path": "/overall", "value": "PASS_WITH_CONDITIONS"},
-        {"op": "replace", "path": "/routing", "value": "RETURN_TO_OPERATIONS"}
+        {
+          "op": "replace",
+          "path": "/gates/security/verdict",
+          "value": "PASS_WITH_CONDITIONS"
+        },
+        {
+          "op": "add",
+          "path": "/gates/security/conditions",
+          "value": [
+            "Complete the stated condition"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/overall",
+          "value": "PASS_WITH_CONDITIONS"
+        },
+        {
+          "op": "replace",
+          "path": "/routing",
+          "value": "RETURN_TO_OPERATIONS"
+        }
       ]
     },
     {
@@ -208,12 +226,36 @@
       "expected": "VALID",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        {"op": "replace", "path": "/raw_output_bytes", "value": 0},
-        {"op": "replace", "path": "/raw_output_sha256", "value": null},
-        {"op": "replace", "path": "/transport_outcome", "value": "TIMEOUT"},
-        {"op": "replace", "path": "/schema_validation", "value": "INVALID_MALFORMED"},
-        {"op": "replace", "path": "/routing_check", "value": "NOT_APPLICABLE"},
-        {"op": "replace", "path": "/result_sha256", "value": null}
+        {
+          "op": "replace",
+          "path": "/raw_output_bytes",
+          "value": 0
+        },
+        {
+          "op": "replace",
+          "path": "/raw_output_sha256",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/transport_outcome",
+          "value": "TIMEOUT"
+        },
+        {
+          "op": "replace",
+          "path": "/schema_validation",
+          "value": "INVALID_MALFORMED"
+        },
+        {
+          "op": "replace",
+          "path": "/routing_check",
+          "value": "NOT_APPLICABLE"
+        },
+        {
+          "op": "replace",
+          "path": "/result_sha256",
+          "value": null
+        }
       ]
     },
     {
@@ -222,7 +264,11 @@
       "expected": "INVALID_MALFORMED",
       "mutation_of": "invocation-valid-zero-byte-timeout",
       "patch": [
-        {"op": "replace", "path": "/raw_output_sha256", "value": "9999999999999999999999999999999999999999999999999999999999999999"}
+        {
+          "op": "replace",
+          "path": "/raw_output_sha256",
+          "value": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
       ]
     },
     {
@@ -231,7 +277,11 @@
       "expected": "INVALID_MALFORMED",
       "mutation_of": "invocation-valid-zero-byte-timeout",
       "patch": [
-        {"op": "replace", "path": "/result_sha256", "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+        {
+          "op": "replace",
+          "path": "/result_sha256",
+          "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
       ]
     },
     {
@@ -240,7 +290,11 @@
       "expected": "INVALID_BINDING_MISMATCH",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        {"op": "replace", "path": "/pre_transmission_disclosure/packet_sha256", "value": "3333333333333333333333333333333333333333333333333333333333333333"}
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/packet_sha256",
+          "value": "3333333333333333333333333333333333333333333333333333333333333333"
+        }
       ]
     },
     {
@@ -249,8 +303,16 @@
       "expected": "VALID",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        {"op": "replace", "path": "/pre_transmission_disclosure/repository_visibility", "value": "PRIVATE"},
-        {"op": "replace", "path": "/pre_transmission_disclosure/founder_decision_sha256", "value": "6666666666666666666666666666666666666666666666666666666666666666"}
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/repository_visibility",
+          "value": "PRIVATE"
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/founder_decision_sha256",
+          "value": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
       ]
     },
     {
@@ -259,9 +321,23 @@
       "expected": "VALID",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        {"op": "replace", "path": "/pre_transmission_disclosure/scan_outcome", "value": "MATCH_AUTHORIZED"},
-        {"op": "replace", "path": "/pre_transmission_disclosure/matched_rule_ids", "value": ["PERSONAL_DATA"]},
-        {"op": "replace", "path": "/pre_transmission_disclosure/founder_decision_sha256", "value": "7777777777777777777777777777777777777777777777777777777777777777"}
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/scan_outcome",
+          "value": "MATCH_AUTHORIZED"
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/matched_rule_ids",
+          "value": [
+            "PERSONAL_DATA"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/founder_decision_sha256",
+          "value": "7777777777777777777777777777777777777777777777777777777777777777"
+        }
       ]
     },
     {
@@ -270,8 +346,18 @@
       "expected": "INVALID_OTHER",
       "mutation_of": "invocation-valid-isolated",
       "patch": [
-        {"op": "replace", "path": "/pre_transmission_disclosure/scan_outcome", "value": "BLOCKED"},
-        {"op": "replace", "path": "/pre_transmission_disclosure/matched_rule_ids", "value": ["PRIVATE_KEY"]}
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/scan_outcome",
+          "value": "BLOCKED"
+        },
+        {
+          "op": "replace",
+          "path": "/pre_transmission_disclosure/matched_rule_ids",
+          "value": [
+            "PRIVATE_KEY"
+          ]
+        }
       ]
     },
     {
@@ -398,6 +484,60 @@
           "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         }
       ]
+    },
+    {
+      "id": "security-na-reserved-act",
+      "schema": "review-result.schema.json",
+      "expected": "VALID",
+      "instance": {
+        "result_schema_version": "0.1",
+        "packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pr_number": 1,
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "evaluator_task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "routing_profile": "foundry-routing-v0.1-security-na-hard-stop",
+        "gates": {
+          "architecture": {
+            "verdict": "PASS",
+            "finding_ids": []
+          },
+          "security": {
+            "verdict": "N/A",
+            "finding_ids": [],
+            "na_reason": "No security surface asserted; founder act still required"
+          },
+          "privacy": {
+            "verdict": "PASS",
+            "finding_ids": []
+          },
+          "quality": {
+            "verdict": "FAIL",
+            "finding_ids": [
+              "FND-QUAL-001"
+            ]
+          }
+        },
+        "findings": [
+          {
+            "finding_id": "FND-QUAL-001",
+            "gate": "quality",
+            "severity": "MAJOR",
+            "category": "RESERVED_ACT_REQUIRED",
+            "title": "Reserved act needed",
+            "detail": "Founder action required",
+            "evidence_refs": [
+              {
+                "member": "files/a.md",
+                "line_start": 1,
+                "line_end": 1
+              }
+            ]
+          }
+        ],
+        "overall": "FAIL",
+        "routing": "ESCALATE_FOUNDER",
+        "requires_human": true
+      }
     }
   ],
   "controller_cases": [
@@ -468,8 +608,12 @@
     {
       "id": "finding-index-mismatch",
       "input": {
-        "indexed_findings": ["FND-SEC-001"],
-        "actual_findings": ["FND-SEC-002"]
+        "indexed_findings": [
+          "FND-SEC-001"
+        ],
+        "actual_findings": [
+          "FND-SEC-002"
+        ]
       },
       "expected": "INVALID_FINDING_INDEX"
     },
@@ -539,6 +683,38 @@
         "result_sha256": null
       },
       "expected": "INVALID_OUTPUT_RETAINED"
+    },
+    {
+      "id": "invalid-adverse-security-na",
+      "input": {
+        "raw_output": "{\"gates\": {\"security\": {\"verdict\": \"N/A\"}}}",
+        "attempt": 1
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-hard-stop",
+      "input": {
+        "raw_output": "{\"routing\": \"HARD_STOP\"}",
+        "attempt": 1
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-escalate",
+      "input": {
+        "raw_output": "{\"routing\": \"ESCALATE_FOUNDER\"}",
+        "attempt": 1
+      },
+      "expected": "HARD_STOP"
+    },
+    {
+      "id": "invalid-adverse-human",
+      "input": {
+        "raw_output": "{\"requires_human\": true}",
+        "attempt": 1
+      },
+      "expected": "HARD_STOP"
     }
   ],
   "routing_cases": [
