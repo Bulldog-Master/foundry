@@ -83,19 +83,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "session_id",
+        "session_id_sha256",
         "runtime_image_sha256",
-        "host_id"
+        "host_id_sha256"
       ],
       "properties": {
-        "session_id": {
-          "type": "string"
+        "session_id_sha256": {
+          "$ref": "#/$defs/sha256"
         },
         "runtime_image_sha256": {
           "$ref": "#/$defs/sha256"
         },
-        "host_id": {
-          "type": "string"
+        "host_id_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -205,7 +205,7 @@
       "required": ["algorithm_version", "outcome", "matched_signals"],
       "properties": {
         "algorithm_version": {"const": "0.1"},
-        "outcome": {"enum": ["NONE", "ADVERSE"]},
+        "outcome": {"enum": ["NONE", "ADVERSE", "INDETERMINATE"]},
         "matched_signals": {
           "type": "array",
           "uniqueItems": true,
@@ -226,7 +226,11 @@
         {
           "if": {"properties": {"outcome": {"const": "NONE"}}, "required": ["outcome"]},
           "then": {"properties": {"matched_signals": {"maxItems": 0}}},
-          "else": {"properties": {"matched_signals": {"minItems": 1}}}
+          "else": {
+            "if": {"properties": {"outcome": {"const": "ADVERSE"}}, "required": ["outcome"]},
+            "then": {"properties": {"matched_signals": {"minItems": 1}}},
+            "else": {"properties": {"matched_signals": {"maxItems": 0}}}
+          }
         }
       ]
     },
@@ -236,7 +240,7 @@
       "required": [
         "scanner_sha256", "packet_sha256", "repository_visibility",
         "fork_visibility", "members_scanned", "bytes_scanned", "scan_outcome",
-        "matched_rule_ids", "provider_terms_sha256", "founder_decision_sha256"
+        "matched_rule_ids", "provider_terms_sha256", "provider_terms_accepted", "founder_decision_sha256"
       ],
       "properties": {
         "scanner_sha256": {"$ref": "#/$defs/sha256"},
@@ -248,6 +252,7 @@
         "scan_outcome": {"enum": ["CLEAN", "MATCH_AUTHORIZED", "BLOCKED"]},
         "matched_rule_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
         "provider_terms_sha256": {"$ref": "#/$defs/sha256"},
+        "provider_terms_accepted": {"const": true},
         "founder_decision_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
       }
     },
@@ -289,18 +294,37 @@
         "properties": {
           "pre_transmission_disclosure": {
             "properties": {
-              "matched_rule_ids": {"maxItems": 0},
-              "founder_decision_sha256": {"type": "null"}
+              "matched_rule_ids": {"maxItems": 0}
             }
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {"pre_transmission_disclosure": {"properties": {"scan_outcome": {"const": "MATCH_AUTHORIZED"}}}}
       },
-      "else": {
+      "then": {
         "properties": {
           "pre_transmission_disclosure": {
             "properties": {
               "matched_rule_ids": {"minItems": 1},
               "founder_decision_sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"pre_transmission_disclosure": {"properties": {"scan_outcome": {"const": "BLOCKED"}}}}
+      },
+      "then": {
+        "properties": {
+          "pre_transmission_disclosure": {
+            "properties": {
+              "matched_rule_ids": {"minItems": 1},
+              "founder_decision_sha256": {"type": "null"}
             }
           }
         }

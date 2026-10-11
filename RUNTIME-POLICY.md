@@ -1,28 +1,15 @@
-# Foundry Evaluator External Runtime Policy
+# External evaluator runtime policy
 
-This runtime is a commissioning trust anchor outside every subject pull request. It is not activated Foundry 2 and has no merge, branch-write, workflow-write, administration, deployment, signing, promotion, override, ratification, or founder-approval authority.
+This is a root-installed BOOTSTRAP evaluator administrative release, frozen outside the subject repository. It has no merge, branch-write, administration, workflow, promotion, override, ratification, retention-deletion, or Foundry 2 activation authority. The subject PR cannot replace the release, schemas, task, or governing profile used to judge it.
 
-## Fixed separation
+The packet builder uses public, unauthenticated Git retrieval with system/global Git configuration and prompting disabled. It binds exact base, merge base, and head SHAs, checks Git 2.53.0 and the main-held Amendment 0001 artifact, includes every changed file plus fixed governing and justified context, and fails without truncating. Changed governing files have both base-governing and head-subject copies. This release accepts same-repository PRs and UTF-8 members only; forks and binary inputs fail closed.
 
-- The packet builder reads immutable Git objects by SHA and writes a root-sealed packet.
-- The evaluator receives only the sealed packet and fixed task; it receives no GitHub credential, repository access, tools, or network capability beyond the provider request made by the invoker.
-- The publisher receives no Anthropic credential. It validates the sealed packet, result, invocation record, deterministic routing, and current PR head before acquiring a short-lived GitHub App installation token.
-- The GitHub App is installed only on `Bulldog-Master/foundry` with `Contents: read`, `Checks: write`, and `Pull requests: write`.
-- The App has no permission capable of pushing commits, changing branches or protection, merging, modifying workflows, reading secrets, or performing founder acts.
+The model receives one task and sealed packet, no history, tools, repository capability, GitHub credential, or provider credential. The controller transport alone holds the provider key. The disclosure scan covers manifest, members, and task; private/unknown visibility and configured credential/personal-data/high-entropy matches block transmission. No disclosure exception or provider-terms update is inferred by the runtime. Existing terms acceptance is limited to the public-repository BOOTSTRAP scope.
 
-## Publication rules
+The controller preserves received bytes even on partial timeout or HTTP failure, hashes private session and host identifiers, validates frozen schemas plus cross-file semantics, and derives routing independently. Only a first complete, safely parsed, nonadverse invalid output permits one identical retry. Adverse, indeterminate, interrupted, failed transport, second invalid output, and any valid result cannot be redrawn. The controller checks its own frozen installed/source hashes before execution. Known prior judgment exposure is ineligible.
 
-- A stale result is never published as passing or approving.
-- A valid `PASS` publishes a successful `foundry/four-gate` check and an `APPROVE` review.
-- `FAIL` publishes a failed check and `REQUEST_CHANGES` review.
-- `PASS_WITH_CONDITIONS` and any human-required route publish `action_required` and `REQUEST_CHANGES`.
-- Invalid bindings, hashes, schema, routing, current-head checks, or credential configuration fail closed before publication.
-- Publication is idempotent by `(repository, PR, head SHA, packet SHA, review-record SHA)`.
+The App publisher independently checks packet/profile/task/member/source/result/raw-output/record bindings, context and eligibility, routing and gate semantics, exact App identity and permission set, and current head before each publication stage and after completion. A current-head valid PASS/CONTINUE alone can approve. Other valid outcomes fail or require founder action; terminal controller invalidity publishes action_required without inventing gate verdicts. GitHub side effects are journaled. Uncertain side effects retain evidence and require reconciliation instead of automatic duplication. GitHub can change head immediately after any API observation; GitHub responses are exact-head-bound and subsequent observations refuse further publication.
 
-## Custody and retention
+Root owns immutable hash-addressed releases and all credential/packet/run/install evidence directories; producer and evaluator cannot write them. Installation refuses an enabled/running timer or active service and never enables either. It preserves earlier releases, staging, packets, attempts, and failed evidence. No governed worker deletes evidence. The prospective PR #26 terminal-event retention policy requires a separately commissioned founder-approved deletion job; until that exists, no automated deletion is authorized. No ordinary-retention compliance claim is made for this bootstrap release.
 
-- `/opt/foundry-evaluator/releases/<release-hash>` is root-owned and read-only.
-- `/etc/foundry-evaluator` is root-only and contains provider and GitHub App credentials in separate files.
-- `/var/lib/foundry-evaluator/packets` and `/var/lib/foundry-evaluator/runs` are root-only and append-preserving during commissioning.
-- Provider request IDs and GitHub response IDs are retained for commissioning evidence; credentials are never written to evidence.
-- Removal/retention policy is a founder activation decision. Until then, commissioning evidence is retained.
+The prepared branch, developer fixture, mocked transports, and producer-authored tests do not establish independent commissioning or App branch-protection trust. Those require separately held administrative evidence and founder-approved commissioning. The supplied root command installs and seals only.

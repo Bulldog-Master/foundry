@@ -1,22 +1,26 @@
-#!/usr/bin/env python3
+#!/opt/foundry-evaluator/current/venv/bin/python
 """Validate and publish one sealed Foundry evaluator result via a GitHub App."""
+import pathlib
 import base64, datetime, hashlib, json, os, re, stat, sys, time, urllib.error, urllib.request
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from jsonschema import Draft202012Validator
+from runtime_contract import ALLOWED, parse, put, read_root, schema, validate_packet, validate_result, adverse, Reject, verify_release
+from runtime_invoke import scan
 
 ETC = "/etc/foundry-evaluator"
 APP_CONFIG = ETC + "/github-app.json"
 APP_KEY = ETC + "/github-app.pem"
-SCHEMA_DIR = "/opt/foundry-evaluator/current/schemas"
-PROFILE = "/opt/foundry-evaluator/current/profile.json"
-TASK = "/opt/foundry-evaluator/current/evaluator-task.md"
+RELEASE=pathlib.Path(__file__).resolve().parent.parent
+SCHEMA_DIR=str(RELEASE/'schemas')
+PROFILE=str(RELEASE/'profile.json')
+TASK=str(RELEASE/'evaluator-task.md')
 API = "https://api.github.com"
 VERSION = "2022-11-28"
 H64 = re.compile(r"^[0-9a-f]{64}$")
 
 
-class Reject(Exception): pass
+
 
 
 def jcs(o): return json.dumps(o, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
@@ -24,16 +28,7 @@ def sha(b): return hashlib.sha256(b).hexdigest()
 def b64url(b): return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
 
 
-def read_root_file(path, max_bytes=8_000_000):
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-    try:
-        st = os.fstat(fd)
-        if not stat.S_ISREG(st.st_mode): raise Reject("not regular: " + path)
-        if st.st_uid != 0 or st.st_mode & 0o022: raise Reject("unsafe owner/mode: " + path)
-        data = os.read(fd, max_bytes + 1)
-        if len(data) > max_bytes: raise Reject("file too large: " + path)
-        return data
-    finally: os.close(fd)
+def read_root_file(path,max_bytes=8_000_000): return read_root(path,max_bytes)
 
 
 def api(method, path, token, body=None):
@@ -55,84 +50,59 @@ def installation_token(cfg):
     key = serialization.load_pem_private_key(read_root_file(APP_KEY, 100_000), password=None)
     sig = key.sign((header+"."+payload).encode(), padding.PKCS1v15(), hashes.SHA256())
     jwt = header+"."+payload+"."+b64url(sig)
+    app=api('GET','/app',jwt)
+    installation=api('GET','/app/installations/%s'%cfg['installation_id'],jwt)
+    if app.get('id')!=cfg['app_id'] or app.get('slug')!='foundry-evaluator' or installation.get('app_id')!=cfg['app_id']: raise Reject('App identity mismatch')
+    permissions=installation.get('permissions',{})
+    expected={'checks':'write','contents':'read','pull_requests':'write','metadata':'read'}
+    if permissions!=expected or installation.get('repository_selection')!='selected': raise Reject('App permission/selection drift')
     result = api("POST", "/app/installations/%s/access_tokens" % cfg["installation_id"], jwt,
                  {"repository_ids":[cfg["repository_id"]],
                   "permissions":{"checks":"write","contents":"read","pull_requests":"write"}})
-    return result["token"]
+    if result.get('permissions')!={'checks':'write','contents':'read','pull_requests':'write','metadata':'read'}: raise Reject('token permissions mismatch')
+    return result['token']
 
 
-def load_json(path): return json.loads(read_root_file(path).decode())
+def load_json(path): return parse(read_root_file(path))
 
 
 def validate_evidence(packet_dir, run_dir):
-    manifest = load_json(packet_dir + "/manifest.json")
-    result = load_json(run_dir + "/result.json")
-    record = load_json(run_dir + "/invocation-record.json")
-    Draft202012Validator(load_json(SCHEMA_DIR+"/review-packet.schema.json")).validate(manifest)
-    Draft202012Validator(load_json(SCHEMA_DIR+"/review-result.schema.json")).validate(result)
-    Draft202012Validator(load_json(SCHEMA_DIR+"/invocation-record.schema.json")).validate(record)
-    body = dict(manifest); declared = body.pop("packet_sha256")
-    if not H64.match(declared) or sha(jcs(body)) != declared: raise Reject("packet hash mismatch")
     profile = load_json(PROFILE)
-    if sha(jcs(profile)) != manifest["governance_profile_sha256"]: raise Reject("governance profile mismatch")
-    if manifest["evaluator_task"] != profile["evaluator_task"]: raise Reject("profile task binding mismatch")
-    if sha(read_root_file(TASK)) != manifest["evaluator_task"]["sha256"]: raise Reject("task content mismatch")
-    governing = [row for row in manifest["governance_refs"] if row["role"] == "governing"]
-    subject = [row for row in manifest["governance_refs"] if row["role"] == "subject_head_version"]
-    if [row["path"] for row in governing] != profile["governing_at_base"] or any(row["source_sha"] != manifest["base_sha"] for row in governing):
-        raise Reject("governing profile/source mismatch")
-    if [row["path"] for row in subject] != profile["subject_at_head"] or any(row["source_sha"] != manifest["head_sha"] for row in subject):
-        raise Reject("subject profile/source mismatch")
-    expected_related = [{"path":row["path"],"source":row["source"],"gates":row["gates"],"justification":row["justification"]} for row in profile["related_context"]]
-    observed_related = [{"path":row["path"],"source":row["source"],"gates":row["gates"],"justification":row["justification"]} for row in manifest["related_context_refs"]]
-    if observed_related != expected_related: raise Reject("related-context profile mismatch")
-    declared_members = {}
-    for row in manifest["members"]:
-        name = row["name"]
-        if name in declared_members or name == "manifest.json" or name.startswith("/") or ".." in name.split("/"):
-            raise Reject("unsafe or duplicate packet member")
-        declared_members[name] = row
-    actual_members = set()
-    for root, dirs, files in os.walk(packet_dir, followlinks=False):
-        if any(os.path.islink(os.path.join(root, d)) for d in dirs): raise Reject("packet directory symlink")
-        for filename in files:
-            path = os.path.join(root, filename)
-            rel = os.path.relpath(path, packet_dir).replace(os.sep, "/")
-            if rel != "manifest.json": actual_members.add(rel)
-    if actual_members != set(declared_members): raise Reject("packet member set mismatch")
-    total = 0
-    for name, row in declared_members.items():
-        data = read_root_file(os.path.join(packet_dir, name))
-        if len(data) != row["size"] or sha(data) != row["sha256"]: raise Reject("packet member mismatch: " + name)
-        total += len(data)
-    if total != manifest["completeness"]["size_bytes"]: raise Reject("packet size mismatch")
-    diff_row = declared_members.get(manifest["diff"]["member"])
-    if not diff_row or diff_row["sha256"] != manifest["diff"]["sha256"]: raise Reject("diff member mismatch")
-    for row in manifest["changed_files"]:
-        if row["status"] == "deleted":
-            if any(key in row for key in ("member", "head_content_sha256", "head_blob_sha")):
-                raise Reject("deleted file carries head content")
-            continue
-        member = declared_members.get(row["member"])
-        if not member or member["sha256"] != row["head_content_sha256"] or member["size"] != row["size"]:
-            raise Reject("changed file member mismatch")
-    for row in manifest["governance_refs"]:
-        member = declared_members.get(row["member"])
-        if not member or member["sha256"] != row["sha256"]: raise Reject("governance member mismatch")
-    for row in manifest["related_context_refs"]:
-        member = declared_members.get(row["member"])
-        if not member or member["sha256"] != row["sha256"]: raise Reject("related-context member mismatch")
-        expected_source = manifest["base_sha"] if row["source"] == "base" else manifest["head_sha"]
-        if row["source_sha"] != expected_source: raise Reject("related-context source mismatch")
-    if result["packet_sha256"] != declared or record["packet_sha256"] != declared: raise Reject("packet binding mismatch")
-    if result["head_sha"] != manifest["head_sha"] or result["pr_number"] != manifest["pr_number"]: raise Reject("PR binding mismatch")
-    rsha = sha(jcs(result))
-    if record["result_sha256"] != rsha: raise Reject("result hash mismatch")
-    rr = dict(record); rrhash = rr.pop("review_record_sha256")
-    calc = sha(jcs({"packet_sha256":declared,"result_sha256":rsha,"invocation_record_without_hash":rr}))
-    if calc != rrhash: raise Reject("review record hash mismatch")
-    if record["schema_validation"] != "VALID" or record["routing_check"] != "MATCHES_TABLE": raise Reject("invalid evaluation")
-    return manifest, result, record, rsha, rrhash
+    task = read_root_file(TASK)
+    m,members = validate_packet(packet_dir,profile,task)
+    result = load_json(run_dir+'/result.json')
+    record = load_json(run_dir+'/invocation-record.json')
+    schema('invocation-record.schema.json',record)
+    validate_result(result,m,members)
+    if record['accessible_context']!=ALLOWED or record['tools_available'] or record['credentials_present'] or record['network_policy']!='none': raise Reject('context violation')
+    if record['prior_exposure']['known_prior_sessions_on_this_pr']: raise Reject('prior exposure requires human eligibility review')
+    if record['packet_sha256']!=m['packet_sha256'] or record['schema_validation']!='VALID' or record['routing_check']!='MATCHES_TABLE': raise Reject('invalid evaluation')
+    if record['evaluator']['system_prompt_sha256']!=sha(task): raise Reject('prompt mismatch')
+    config = load_json(os.path.dirname(TASK)+'/config.json')
+    if record['evaluator']['config_sha256']!=sha(jcs(config)): raise Reject('configuration mismatch')
+    if record['environment']['runtime_image_sha256']!=sha(read_root_file(os.path.dirname(TASK)+'/RUNTIME.json')+read_root_file(os.path.dirname(TASK)+'/MANIFEST.sha256')): raise Reject('runtime image binding')
+    raw = read_root_file(run_dir+'/raw-response.json')
+    if record['raw_output_sha256']!=sha(raw) or record['raw_output_bytes']!=len(raw): raise Reject('raw output mismatch')
+    response=parse(raw)
+    if response.get('stop_reason')!='end_turn' or any(b.get('type')!='text' for b in response['content']): raise Reject('incomplete output')
+    text=''.join(b['text'] for b in response['content']).encode()
+    if parse(text)!=result: raise Reject('raw/result mismatch')
+    if response.get('model')!=record['evaluator']['model_id']: raise Reject('observed model binding')
+    outcome,signals=adverse(text)
+    if record['adverse_signal_scan']!={'algorithm_version':'0.1','outcome':outcome,'matched_signals':signals}: raise Reject('adverse scan mismatch')
+    disclosure=record['pre_transmission_disclosure']
+    if disclosure['packet_sha256']!=m['packet_sha256'] or disclosure['scan_outcome']!='CLEAN' or disclosure['repository_visibility']!='PUBLIC' or disclosure['fork_visibility']!='NOT_A_FORK' or not disclosure['provider_terms_accepted']: raise Reject('disclosure failure')
+    if disclosure['provider_terms_sha256']!=sha(read_root_file(os.path.dirname(TASK)+'/provider-terms.json')): raise Reject('provider terms mismatch')
+    chunks=[jcs(m),*members.values(),task]
+    scanner=pathlib.Path(__file__).resolve().parent/'runtime_invoke.py'
+    if disclosure['scanner_sha256']!=sha(read_root_file(scanner)) or scan(chunks) or disclosure['members_scanned']!=len(chunks) or disclosure['bytes_scanned']!=sum(map(len,chunks)): raise Reject('disclosure scan binding')
+    rsha=sha(jcs(result))
+    rr=dict(record); rrhash=rr.pop('review_record_sha256')
+    if record['result_sha256']!=rsha or sha(jcs({'packet_sha256':m['packet_sha256'],'result_sha256':rsha,'invocation_record_without_hash':rr}))!=rrhash: raise Reject('review record hash')
+    if record['attempt']==2:
+        previous=load_json(os.path.dirname(run_dir)+'/attempt-1/invocation-record.json')
+        if previous['schema_validation']=='VALID' or previous['adverse_signal_scan']['outcome']!='NONE' or previous['transport_outcome']!='COMPLETED' or previous['evaluator']['config_sha256']!=record['evaluator']['config_sha256']: raise Reject('ineligible retry')
+    return m,result,record,rsha,rrhash
 
 
 def render(result, packet_sha, result_sha, record_sha):
@@ -142,37 +112,83 @@ def render(result, packet_sha, result_sha, record_sha):
              "- Routing: **"+result["routing"]+"**", "", "Gate verdicts:"]
     for name in ("architecture","security","privacy","quality"):
         lines.append("- %s: **%s**" % (name, result["gates"][name]["verdict"]))
-    if result["findings"]:
-        lines += ["", "Findings:"]
-        for f in result["findings"]:
-            lines.append("- `%s` [%s/%s/%s] %s" % (f["finding_id"],f["gate"],f["severity"],f["category"],f["title"]))
+    if result['findings']:
+        lines += ['', 'Findings (quoted structured data):']
+        for finding in result['findings']:
+            lines += ['```json',json.dumps(finding,sort_keys=True,ensure_ascii=False),'```']
     lines += ["", "This text is rendered mechanically from the schema-valid evaluator result."]
     return "\n".join(lines)
 
+def validate_controller_stop(packet_dir,run_dir):
+    m,members=validate_packet(packet_dir,load_json(PROFILE),read_root_file(TASK))
+    record=load_json(run_dir+'/invocation-record.json'); schema('invocation-record.schema.json',record)
+    if record['schema_validation']=='VALID' or record['packet_sha256']!=m['packet_sha256']: raise Reject('not an invalid controller outcome')
+    if record['attempt']==1 and record['transport_outcome']=='COMPLETED' and record['adverse_signal_scan']['outcome']=='NONE': raise Reject('first invalid output is retry-eligible, not terminal')
+    raw=read_root_file(run_dir+'/raw-response.json')
+    if record['raw_output_bytes']!=len(raw) or record['raw_output_sha256']!=(sha(raw) if raw else None): raise Reject('raw output binding')
+    rr=dict(record); rrhash=rr.pop('review_record_sha256')
+    if sha(jcs({'packet_sha256':m['packet_sha256'],'result_sha256':None,'invocation_record_without_hash':rr}))!=rrhash: raise Reject('review record binding')
+    text='\n'.join(['Controller outcome: invalid evaluation; human resolution required.',
+        'Head: `'+m['head_sha']+'`','Packet: `'+m['packet_sha256']+'`',
+        'Result: null','Review record: `'+rrhash+'`','Routing: HARD_STOP',
+        'No valid gate verdicts exist for this invocation. All attempts remain retained.'])
+    return m,text,rrhash
+
 
 def main():
-    if len(sys.argv) != 3: raise SystemExit("usage: foundry-evaluator-publish PACKET_DIR RUN_DIR")
+    os.umask(0o077)
+    if os.geteuid()!=0: raise Reject('must run as root')
+    controller_stop=len(sys.argv)==4 and sys.argv[1]=='--controller-stop'
+    if controller_stop: sys.argv=[sys.argv[0],*sys.argv[2:]]
+    if len(sys.argv) != 3: raise SystemExit("usage: foundry-evaluator-publish [--controller-stop] PACKET_DIR RUN_DIR")
+    verify_release(RELEASE)
     cfg = load_json(APP_CONFIG)
-    if set(cfg) != {"app_id","installation_id","repository_id","owner","repo"}: raise Reject("bad app config")
-    m,r,rec,rsha,rrsha = validate_evidence(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2]))
+    if cfg != {'app_id':5263160,'installation_id':169955633,'repository_id':1297877588,'owner':'Bulldog-Master','repo':'foundry'}: raise Reject('unapproved App configuration')
+    if controller_stop:
+        m,text,rrsha=validate_controller_stop(os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2]))
+        r=None
+    else:
+        m,r,rec,rsha,rrsha = validate_evidence(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2]))
     if (m["repository"]["owner"],m["repository"]["name"],m["repository"]["repo_id"]) != (cfg["owner"],cfg["repo"],cfg["repository_id"]):
         raise Reject("repository binding mismatch")
     token = installation_token(cfg)
     pr = api("GET","/repos/%s/%s/pulls/%s"%(cfg["owner"],cfg["repo"],m["pr_number"]),token)
     if pr["state"] != "open" or pr["head"]["sha"] != m["head_sha"]: raise Reject("stale or closed PR")
-    text = render(r,m["packet_sha256"],rsha,rrsha)
-    if r["overall"] == "PASS" and r["routing"] == "CONTINUE" and not r["requires_human"]:
+    if r is not None: text = render(r,m["packet_sha256"],rsha,rrsha)
+    if len(text.encode())>60000: raise Reject('publication size exceeds limit; no truncation')
+    if controller_stop: conclusion,event='action_required','REQUEST_CHANGES'
+    elif r["overall"] == "PASS" and r["routing"] == "CONTINUE" and not r["requires_human"]:
         conclusion,event = "success","APPROVE"
-    elif r["overall"] == "FAIL": conclusion,event = "failure","REQUEST_CHANGES"
-    else: conclusion,event = "action_required","REQUEST_CHANGES"
-    check = api("POST","/repos/%s/%s/check-runs"%(cfg["owner"],cfg["repo"]),token,
-                {"name":"foundry/four-gate","head_sha":m["head_sha"],"status":"completed",
-                 "conclusion":conclusion,"completed_at":datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                 "output":{"title":"Foundry evaluator: "+r["overall"],"summary":text[:65000]}})
-    review = api("POST","/repos/%s/%s/pulls/%s/reviews"%(cfg["owner"],cfg["repo"],m["pr_number"]),token,
-                 {"commit_id":m["head_sha"],"event":event,"body":text})
-    print(json.dumps({"check_run_id":check["id"],"review_id":review["id"],"head_sha":m["head_sha"],
-                      "packet_sha256":m["packet_sha256"],"conclusion":conclusion,"review_event":event},sort_keys=True))
+    elif r['routing']=='ESCALATE_FOUNDER': conclusion,event='action_required','REQUEST_CHANGES'
+    else: conclusion,event='failure','REQUEST_CHANGES'
+    import fcntl
+    journal=pathlib.Path(sys.argv[2])/'publication'; journal.mkdir(mode=0o700,exist_ok=True)
+    with open(journal/'lock','a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        def current():
+            live=api('GET','/repos/%s/%s/pulls/%s'%(cfg['owner'],cfg['repo'],m['pr_number']),token)
+            if live['state']!='open' or live['head']['sha']!=m['head_sha']: raise Reject('stale or closed PR')
+        current()
+        if (journal/'completed.json').exists():
+            print((journal/'completed.json').read_text()); return
+        if (journal/'uncertain.json').exists(): raise Reject('HARD_STOP: uncertain publication; reconcile GitHub IDs before retry')
+        put(journal,'uncertain.json',jcs({'head_sha':m['head_sha'],'review_record_sha256':rrsha}))
+        check = api("POST","/repos/%s/%s/check-runs"%(cfg["owner"],cfg["repo"]),token,
+                    {"name":"foundry/four-gate","head_sha":m["head_sha"],"status":"completed",
+                     "conclusion":conclusion,"completed_at":datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                     "output":{"title":"Foundry evaluator: "+('INVALID' if controller_stop else r["overall"]),"summary":text}})
+        put(journal,'check.json',jcs(check))
+        if check.get('app',{}).get('id')!=cfg['app_id'] or check.get('head_sha')!=m['head_sha']: raise Reject('returned check App/head source mismatch')
+        current()
+        review = api("POST","/repos/%s/%s/pulls/%s/reviews"%(cfg["owner"],cfg["repo"],m["pr_number"]),token,
+                     {"commit_id":m["head_sha"],"event":event,"body":text})
+        put(journal,'review.json',jcs(review))
+        if review.get('commit_id')!=m['head_sha'] or review.get('user',{}).get('login')!='foundry-evaluator[bot]' or review.get('user',{}).get('type')!='Bot': raise Reject('returned review App/head source mismatch')
+        current()
+        completed={"check_run_id":check["id"],"review_id":review["id"],"head_sha":m["head_sha"],
+                          "packet_sha256":m["packet_sha256"],"conclusion":conclusion,"review_event":event}
+        put(journal,'completed.json',jcs(completed))
+        print(json.dumps(completed,sort_keys=True))
 
 
 if __name__ == "__main__":

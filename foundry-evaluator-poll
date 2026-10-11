@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/opt/foundry-evaluator/current/venv/bin/python
 """Poll open Foundry PRs and run those labeled foundry-review."""
 import json, subprocess, urllib.request
 URL="https://api.github.com/repos/Bulldog-Master/foundry/pulls?state=open&per_page=100"

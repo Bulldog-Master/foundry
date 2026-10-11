@@ -1,0 +1,2 @@
+Initial legacy test_invoke.py failed before execution: PermissionError [Errno 1] Operation not permitted creating mock-server socket. Retried with explicit sandbox escalation; legacy tests passed.
+Local clone branch checkout initially failed because remote-only runtime ref was not copied as a ref; checked out existing runtime object 4c44dd26acef093bc210d47b66f973e8e9cf0bcc instead.

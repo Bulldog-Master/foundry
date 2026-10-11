@@ -1,0 +1,1 @@
+Source-branch publication attempt 1: git push failed because sandbox DNS could not resolve github.com. Attempt 2 was explicitly sandbox-approved and failed because the checkout had no HTTPS username/credential. No remote ref was changed by either attempt. Source publication continued through the task-authorized GitHub connector; runtime check/review publication remains App-only.

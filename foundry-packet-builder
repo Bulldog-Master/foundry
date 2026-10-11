@@ -1,12 +1,13 @@
-#!/usr/bin/env python3
+#!/opt/foundry-evaluator/current/venv/bin/python
 """Build a complete, hash-bound Foundry review packet from immutable Git SHAs."""
 import argparse, datetime, hashlib, json, os, pathlib, stat, subprocess, uuid
+from runtime_contract import canon, schema, parse
 
 SIZE_LIMIT = 4_000_000
 DIFF_FLAGS = ["--binary", "--no-ext-diff", "--no-textconv", "--full-index"]
 
 def sha(b): return hashlib.sha256(b).hexdigest()
-def canon(o): return json.dumps(o,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()
+
 def git(repo,*args,text=False):
     return subprocess.check_output(["git","-c","safe.directory="+str(repo),"-C",str(repo),*args],text=text)
 def blob(repo,commit,path): return git(repo,"show",commit+":"+path)
@@ -17,14 +18,23 @@ def safe_profile(path):
         st=os.fstat(fd)
         if not stat.S_ISREG(st.st_mode) or st.st_uid!=0 or st.st_mode&0o022:
             raise SystemExit("unsafe profile owner/mode")
-        return json.loads(os.read(fd,1_000_001).decode())
+        return parse(os.read(fd,1_000_001))
     finally: os.close(fd)
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument("--repo",required=True); p.add_argument("--profile",required=True)
     p.add_argument("--pr",required=True,type=int); p.add_argument("--base-ref",required=True); p.add_argument("--base-sha",required=True)
     p.add_argument("--merge-base-sha",required=True); p.add_argument("--head-sha",required=True); p.add_argument("--output",required=True)
+    p.add_argument('--round',type=int,default=1); p.add_argument('--prior-packet-sha256')
     a=p.parse_args(); repo=pathlib.Path(a.repo).resolve(); out=pathlib.Path(a.output); prof=safe_profile(a.profile)
+    if git(repo,'--version',text=True).strip() != 'git version 2.53.0': raise SystemExit('requires pinned git version 2.53.0')
+    ratpath='operations/foundry-2/ratifications/AMENDMENT-0001.json'
+    rat=parse(blob(repo,a.base_sha,ratpath))
+    if (rat.get('amendment_id') != '0001' or rat.get('amendment_sha256') != 'c74befb7587c866cffb06f9214b4c4ec5434395dcdbf99ca4dc725f5a5352d60'
+        or rat.get('decision') != 'RATIFY' or rat.get('founder_identity') != 'github:Bulldog-Master' or not rat.get('evidence_ref')):
+        raise SystemExit('ESCALATE_FOUNDER: ratification absent or mismatched')
+    from jsonschema import FormatChecker
+    if not FormatChecker().conforms(rat.get('recorded_at'), 'date-time'): raise SystemExit('ESCALATE_FOUNDER: invalid ratification date')
     if out.exists(): raise SystemExit("output exists")
     for value in (a.base_sha,a.merge_base_sha,a.head_sha):
         if len(value)!=40 or any(c not in "0123456789abcdef" for c in value): raise SystemExit("bad git SHA")
@@ -33,6 +43,9 @@ def main():
     required={"profile_version","repository","head_repository","governing_at_base","subject_at_head","related_context","evaluator_task"}
     if set(prof)!=required: raise SystemExit("profile keys mismatch")
     out.mkdir(mode=0o700); members={}
+    def safe_name(path):
+        if not path or path.startswith('/') or any(x in ('','..','.') for x in path.split('/')): raise SystemExit('unsafe path')
+        return path
     diff=git(repo,"diff",*DIFF_FLAGS,a.merge_base_sha,a.head_sha); members["diff.patch"]=diff
     changed=[]; parts=git(repo,"diff","--name-status","-z","--find-renames",a.merge_base_sha,a.head_sha).split(b"\0"); i=0
     while i<len(parts)-1:
@@ -41,6 +54,7 @@ def main():
             old=parts[i].decode(); path=parts[i+1].decode(); i+=2; status="renamed"
         else:
             path=parts[i].decode(); i+=1; status={"A":"added","M":"modified","D":"deleted"}.get(code[0])
+        safe_name(path)
         if status is None: raise SystemExit("unsupported status %s for %s"%(code,path))
         if status=="deleted":
             prior=git(repo,"rev-parse",a.merge_base_sha+":"+path,text=True).strip()
@@ -57,9 +71,9 @@ def main():
         changed.append(row)
     gov=[]
     for role,source,paths,prefix in (("governing",a.base_sha,prof["governing_at_base"],"governance/base"),
-                                      ("subject_head_version",a.head_sha,prof["subject_at_head"],"governance/subject")):
+                                      ("subject_head_version",a.head_sha,list(dict.fromkeys(prof["subject_at_head"]+[r["path"] for r in changed if r["path"] in prof["governing_at_base"]])),"governance/subject")):
         for path in paths:
-            data=blob(repo,source,path); name=prefix+"/"+path; members[name]=data
+            safe_name(path); data=blob(repo,source,path); name=prefix+"/"+path; members[name]=data
             gov.append({"path":path,"role":role,"source_sha":source,"sha256":sha(data),"member":name})
     related=[]
     for row in prof["related_context"]:
@@ -82,12 +96,12 @@ def main():
        "allowed_context":["packet_manifest","packet_members","evaluator_task"],
        "prohibited_context":["producer_self_assessment","producer_prose_pr_body","other_evaluator_verdicts","prior_findings_or_judgments","prior_verdict_prose",
                              "founder_approval_fields","sealed_truth","secrets_or_credentials","network_access","repository_access_outside_packet"],
-       "review_round":{"round":1,"prior_packet_sha256":None},
+       "review_round":{"round":a.round,"prior_packet_sha256":a.prior_packet_sha256},
        "producer_identity":{"component":"foundry-packet-builder","version":prof["profile_version"],"build_sha256":build_sha},
        "completeness":{"complete":True,"truncated":False,"size_bytes":total,"size_limit_bytes":SIZE_LIMIT},
        "members":[{"name":n,"sha256":sha(d),"size":len(d)} for n,d in sorted(members.items())],
        "packet_created_at":datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-    m["packet_sha256"]=sha(canon(m)); (out/"manifest.json").write_bytes(canon(m))
+    m["packet_sha256"]=sha(canon(m)); schema("review-packet.schema.json",m); (out/"manifest.json").write_bytes(canon(m))
     print(json.dumps({"packet_dir":str(out),"packet_sha256":m["packet_sha256"],"builder_sha256":build_sha,
                       "changed_files":len(changed),"members":len(members),"size_bytes":total},sort_keys=True))
 if __name__=="__main__": main()

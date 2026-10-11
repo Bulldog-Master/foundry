@@ -1,12 +1,9 @@
-# One-time founder setup
+# Root installation and final PR #26 sealing
 
-This is the only interactive setup required for standing GitHub publication. It does not give the evaluator merge, branch, administration, workflow, secret, or repository-write authority.
+Run the supplied commit-and-manifest-pinned PowerShell command on the Windows host containing WSL distro `Foundry-Agent`. It downloads public source without Git credentials into a new root-private staging directory, verifies the independently supplied manifest digest, installs, and seals. Keep the returned `packet_sha256`, `packet_dir`, `base_sha`, and `head_sha` for the next independent invocation. No provider or App key is needed to seal.
 
-1. Open the prefilled private GitHub App registration page:
-   `https://github.com/settings/apps/new?name=foundry-evaluator&description=Independent%20Foundry%20review%20publisher&url=https%3A%2F%2Fgithub.com%2FBulldog-Master%2Ffoundry&public=false&webhook_active=false&checks=write&contents=read&pull_requests=write`
-2. Create the App, install it only on `Bulldog-Master/foundry`, and generate one private key.
-3. Record the App ID and installation ID. Place the downloaded private key in `/etc/foundry-evaluator/github-app.pem` as root-owned mode `0600` and create `/etc/foundry-evaluator/github-app.json` with the App ID, installation ID, repository ID `1297877588`, owner `Bulldog-Master`, and repo `foundry`.
-4. Run the commissioning verification. Enable the timer only after its offline tests and a shadow publication test pass.
+The existing provider key remains `/etc/foundry-evaluator/api-key`; the existing App key and config remain `/etc/foundry-evaluator/github-app.pem` and `/etc/foundry-evaluator/github-app.json`. This release does not create or replace them. The publisher permits only App ID `5263160`, installation `169955633`, repository `1297877588`, and verifies observed GitHub identity and bounded permissions before acquiring an installation token. It never falls back to a PAT, founder user token, gh credential, environment credential, or SSH identity. Missing or mismatched credentials refuse publication.
 
-After this checkpoint, the service discovers PRs labeled `foundry-review`, creates one immutable packet per head, invokes Claude Opus with no tools, validates bindings and routing, and publishes the check plus review through the App. A new PR head is evaluated automatically. Valid results are never rerun. Invalid evaluator output gets at most one retry. Failed or stale review never merges.
+Later root invocation and publication remain separate from seal-only installation. Every current-head valid result is retained and never redrawn. Terminal invalidity produces `action_required`; a valid adverse result produces a failing check (or `action_required` for founder escalation) and `REQUEST_CHANGES`. Uncertain publication stops rather than posting duplicate judgments.
 
+The timer remains disabled. Branch protection acceptance, exact App source binding, custodian independence, live shadow publication, and any Foundry 2 activation require separate commissioning evidence and applicable founder acts. Offline tests do not attest to those live conditions.

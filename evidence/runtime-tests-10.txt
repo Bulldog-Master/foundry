@@ -1,0 +1,29 @@
+test_adverse_invalid_never_redrawn (test_runtime.RuntimeTests.test_adverse_invalid_never_redrawn) ... ok
+test_app_bounded_token_pass_publication_and_idempotence (test_runtime.RuntimeTests.test_app_bounded_token_pass_publication_and_idempotence) ... ok
+test_app_permission_drift_refuses_token (test_runtime.RuntimeTests.test_app_permission_drift_refuses_token) ... ok
+test_binding_prefix_lines_and_gate_semantics (test_runtime.RuntimeTests.test_binding_prefix_lines_and_gate_semantics) ... ok
+test_canonical_numbers_duplicates_and_adverse_nested (test_runtime.RuntimeTests.test_canonical_numbers_duplicates_and_adverse_nested) ... ok
+test_controller_invalidity_publishes_action_required_without_gate_claims (test_runtime.RuntimeTests.test_controller_invalidity_publishes_action_required_without_gate_claims) ... ok
+test_duplicate_output_hard_stop (test_runtime.RuntimeTests.test_duplicate_output_hard_stop) ... ok
+test_frozen_dependency_image_detects_changed_and_added_files (test_runtime.RuntimeTests.test_frozen_dependency_image_detects_changed_and_added_files) ... ok
+test_head_moves_between_check_and_review_preserves_uncertainty (test_runtime.RuntimeTests.test_head_moves_between_check_and_review_preserves_uncertainty) ... ok
+test_installed_release_drift_rejected (test_runtime.RuntimeTests.test_installed_release_drift_rejected) ... ok
+test_malformed_output_hard_stop (test_runtime.RuntimeTests.test_malformed_output_hard_stop) ... ok
+test_moved_head_during_seal_retains_staging_and_build_evidence (test_runtime.RuntimeTests.test_moved_head_during_seal_retains_staging_and_build_evidence) ... ok
+test_only_complete_nonadverse_invalid_can_retry (test_runtime.RuntimeTests.test_only_complete_nonadverse_invalid_can_retry) ... ok
+test_packet_tamper_unlisted_symlink_profile (test_runtime.RuntimeTests.test_packet_tamper_unlisted_symlink_profile) ... ok
+test_partial_timeout_retains_exact_bytes (test_runtime.RuntimeTests.test_partial_timeout_retains_exact_bytes) ... ok
+test_publisher_revalidates_record_raw_context_and_routing (test_runtime.RuntimeTests.test_publisher_revalidates_record_raw_context_and_routing) ... ok
+test_root_custody_rejects_user_owned_input (test_runtime.RuntimeTests.test_root_custody_rejects_user_owned_input) ... ok
+test_scan_covers_task_and_manifest_and_credentials (test_runtime.RuntimeTests.test_scan_covers_task_and_manifest_and_credentials) ... ok
+test_seal_only_is_idempotent_and_cannot_invoke_or_publish (test_runtime.RuntimeTests.test_seal_only_is_idempotent_and_cannot_invoke_or_publish) ... ok
+test_second_invalid_stops (test_runtime.RuntimeTests.test_second_invalid_stops) ... ok
+test_security_na_hard_stop_and_valid_failure_not_retried (test_runtime.RuntimeTests.test_security_na_hard_stop_and_valid_failure_not_retried) ... ok
+test_stale_head_blocks_all_publication (test_runtime.RuntimeTests.test_stale_head_blocks_all_publication) ... ok
+test_truncation_even_complete_text_cannot_retry (test_runtime.RuntimeTests.test_truncation_even_complete_text_cannot_retry) ... ok
+test_valid_no_tools_minimized_record_and_no_redraw (test_runtime.RuntimeTests.test_valid_no_tools_minimized_record_and_no_redraw) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.967s
+
+OK

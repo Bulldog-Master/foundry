@@ -1,17 +1,20 @@
-#!/usr/bin/env python3
+#!/opt/foundry-evaluator/current/venv/bin/python
 """Run one Foundry PR through build, seal, evaluate, validate, and publish."""
-import fcntl, json, os, pathlib, shutil, stat, subprocess, sys, urllib.request
+import fcntl, json, os, pathlib, shutil, stat, subprocess, sys, urllib.request, uuid
+from runtime_contract import canon, parse, put, read_root, validate_packet, verify_release, sha
 
 ROOT="/var/lib/foundry-evaluator"
 REPO=ROOT+"/repos/foundry.git"
-PROFILE="/opt/foundry-evaluator/current/profile.json"
-BUILDER="/opt/foundry-evaluator/current/bin/foundry-packet-builder"
-INVOKER="/opt/foundry-evaluator/current/bin/foundry-evaluator-invoke"
-PUBLISHER="/opt/foundry-evaluator/current/bin/foundry-evaluator-publish"
+RELEASE=pathlib.Path(__file__).resolve().parent.parent
+PROFILE=str(RELEASE/"profile.json")
+BUILDER=str(RELEASE/"bin/foundry-packet-builder")
+INVOKER=str(RELEASE/"bin/foundry-evaluator-invoke")
+PUBLISHER=str(RELEASE/"bin/foundry-evaluator-publish")
 OWNER="Bulldog-Master"; NAME="foundry"; REPO_ID=1297877588
 
 def run(cmd,check=True):
-    return subprocess.run(cmd,text=True,capture_output=True,check=check)
+    env={'PATH':str(RELEASE/'venv/bin')+':/usr/bin:/bin','LC_ALL':'C.UTF-8','GIT_CONFIG_NOSYSTEM':'1','GIT_CONFIG_GLOBAL':'/dev/null','GIT_TERMINAL_PROMPT':'0'}
+    return subprocess.run(cmd,text=True,capture_output=True,check=check,env=env)
 def api(path):
     req=urllib.request.Request("https://api.github.com"+path,headers={"Accept":"application/vnd.github+json","User-Agent":"foundry-evaluator-controller/0.1"})
     with urllib.request.urlopen(req,timeout=60) as r: return json.loads(r.read())
@@ -23,44 +26,105 @@ def readonly_tree(path):
         for n in files: os.chmod(os.path.join(root,n),0o400)
     os.chmod(path,0o500)
 
+def previous_packet(prn,base,head,profile):
+    history=[]
+    for path in pathlib.Path(ROOT+'/packets').glob('*/manifest.json'):
+        manifest=parse(read_root(path)); body=dict(manifest); declared=body.pop('packet_sha256')
+        if sha(canon(body))!=declared: raise SystemExit('historical packet integrity failure; no resealing')
+        if manifest['pr_number']==prn and manifest['repository']==profile['repository']:
+            history.append(manifest)
+    history.sort(key=lambda m:(m['packet_created_at'],m['packet_id']))
+    return history[-1] if history else None
+
 def main():
+    os.umask(0o077)
     if os.geteuid()!=0: raise SystemExit("must run as root")
-    if len(sys.argv)!=2 or not sys.argv[1].isdigit(): raise SystemExit("usage: foundry-evaluator-run PR_NUMBER")
+    if len(sys.argv) not in (2,5) or not sys.argv[1].isdigit(): raise SystemExit('usage: foundry-evaluator-run PR_NUMBER [--seal-only BASE_SHA HEAD_SHA]')
+    seal_only=len(sys.argv)==5
+    if seal_only and sys.argv[2]!='--seal-only': raise SystemExit('bad arguments')
     prn=int(sys.argv[1]); lock=lock_file(ROOT+"/locks/pr-%d.lock"%prn)
+    try:
+        return locked_main(prn)
+    finally: lock.close()
+
+def locked_main(prn):
+    verify_release(RELEASE)
+    seal_only=len(sys.argv)==5
     pr=api("/repos/%s/%s/pulls/%d"%(OWNER,NAME,prn))
     if pr["state"]!="open" or pr["base"]["repo"]["id"]!=REPO_ID or pr["head"]["repo"]["id"]!=REPO_ID:
         raise SystemExit("PR is closed or repository binding differs")
-    head=pr["head"]["sha"]; base=pr["base"]["sha"]; base_ref=pr["base"]["ref"]
-    state=pathlib.Path(ROOT+"/heads/%d/%s"%(prn,head))
-    if (state/"published.json").exists():
+    head=pr['head']['sha']; base=pr['base']['sha']; base_ref=pr['base']['ref']
+    if base_ref!='main': raise SystemExit('only protected main is an accepted governing base')
+    if seal_only and (base,head)!=(sys.argv[3],sys.argv[4]): raise SystemExit('expected PR base/head changed; refuses sealing')
+    profile=parse(read_root(PROFILE))
+    # Documentation/log changes to a release cannot create another evaluation draw.
+    freeze_sha=sha(canon({'profile_sha256':sha(canon(profile)),
+        'builder_sha256':sha(read_root(BUILDER)),'config_sha256':sha(read_root(RELEASE/'config.json'))}))
+    state=pathlib.Path(ROOT+'/heads/%d/%s/%s/%s'%(prn,head,base,freeze_sha))
+    if not seal_only and (state/"published.json").exists():
         print((state/"published.json").read_text()); return
     state.mkdir(parents=True,exist_ok=True)
+    if (state/'sealed.json').exists():
+        meta=parse(read_root(state/'sealed.json')); sealed=meta['packet_dir']
+        if meta['base_sha']!=base: raise SystemExit('head already sealed at another base; explicit custodian round needed')
+        validate_packet(sealed,parse(read_root(PROFILE)),read_root(RELEASE/'evaluator-task.md'))
+        if seal_only: print(json.dumps(meta,sort_keys=True)); return
     if not os.path.isdir(REPO):
         pathlib.Path(REPO).parent.mkdir(parents=True,exist_ok=True)
-        run(["git","clone","--mirror","https://github.com/%s/%s.git"%(OWNER,NAME),REPO])
-    run(["git","--git-dir",REPO,"fetch","--force","origin","refs/pull/%d/head:refs/foundry/pr-%d/head"%(prn,prn),
+        run(["git","-c","credential.helper=","-c","core.askPass=","clone","--mirror","https://github.com/%s/%s.git"%(OWNER,NAME),REPO])
+    run(["git","-c","credential.helper=","-c","core.askPass=","--git-dir",REPO,"fetch","--force","origin","refs/pull/%d/head:refs/foundry/pr-%d/head"%(prn,prn),
          "+refs/heads/%s:refs/foundry/pr-%d/base"%(base_ref,prn)])
     observed=run(["git","--git-dir",REPO,"rev-parse","refs/foundry/pr-%d/head"%prn]).stdout.strip()
     if observed!=head: raise SystemExit("fetched head mismatch")
     merge=run(["git","--git-dir",REPO,"merge-base",base,head]).stdout.strip()
-    staging=ROOT+"/staging/pr-%d-%s"%(prn,head)
-    if os.path.exists(staging): shutil.rmtree(staging)
-    built=run([BUILDER,"--repo",REPO,"--profile",PROFILE,"--pr",str(prn),"--base-ref",base_ref,
-               "--base-sha",base,"--merge-base-sha",merge,"--head-sha",head,"--output",staging])
-    meta=json.loads(built.stdout); packet_sha=meta["packet_sha256"]; sealed=ROOT+"/packets/"+packet_sha
-    if os.path.exists(sealed): shutil.rmtree(staging)
-    else: os.rename(staging,sealed); readonly_tree(sealed)
+    if not (state/'sealed.json').exists():
+        prior=previous_packet(prn,base,head,profile)
+        staging=ROOT+'/staging/pr-%d-%s-%s'%(prn,head,uuid.uuid4())
+        pathlib.Path(staging).parent.mkdir(parents=True,exist_ok=True)
+        command=[BUILDER,'--repo',REPO,'--profile',PROFILE,'--pr',str(prn),'--base-ref',base_ref,
+                 '--base-sha',base,'--merge-base-sha',merge,'--head-sha',head,'--output',staging]
+        if prior: command+=['--round',str(prior['review_round']['round']+1),'--prior-packet-sha256',prior['packet_sha256']]
+        built=run(command,check=False)
+        evidence=state/('build-'+str(uuid.uuid4())); evidence.mkdir(mode=0o700)
+        put(evidence,'stdout.txt',built.stdout.encode()); put(evidence,'stderr.txt',built.stderr.encode())
+        put(evidence,'status.json',canon({'returncode':built.returncode,'staging':staging}))
+        if built.returncode: raise SystemExit('builder failed; staging and failure evidence retained')
+        meta=json.loads(built.stdout); packet_sha=meta['packet_sha256']; sealed=ROOT+'/packets/'+packet_sha
+        live=api('/repos/%s/%s/pulls/%d'%(OWNER,NAME,prn))
+        if live['state']!='open' or live['head']['sha']!=head or live['base']['sha']!=base:
+            raise SystemExit('head/base moved during build; staging retained, no packet accepted')
+        pathlib.Path(sealed).parent.mkdir(parents=True,exist_ok=True)
+        os.rename(staging,sealed); readonly_tree(sealed)
+        validate_packet(sealed,parse(read_root(PROFILE)),read_root(RELEASE/'evaluator-task.md'))
+        meta.update({'packet_dir':sealed,'base_sha':base,'head_sha':head,'pr_number':prn,'status':'SEALED','profile_sha256':__import__('hashlib').sha256(canon(parse(read_root(PROFILE)))).hexdigest()})
+        put(state,'sealed.json',canon(meta))
+    else: packet_sha=meta['packet_sha256']
+    if seal_only: print(json.dumps(meta,sort_keys=True)); return
+    # A completed valid invocation is reused for publication; it is never redrawn.
+    existing=pathlib.Path(ROOT+'/runs/'+packet_sha)
+    for n in (1,2):
+        adir=existing/('attempt-%d'%n)
+        if (adir/'invocation-record.json').exists():
+            record=parse(read_root(adir/'invocation-record.json'))
+            if record['schema_validation']=='VALID':
+                published=json.loads(run([PUBLISHER,sealed,str(adir)]).stdout)
+                put(state,'published.json',canon(published)); print(json.dumps(published)); return
     invocation=None
     for _ in (1,2):
         p=run([INVOKER,sealed],check=False); invocation={"returncode":p.returncode,"stdout":p.stdout,"stderr":p.stderr}
+        put(state,'invocation-'+str(uuid.uuid4())+'.json',canon(invocation))
         if p.returncode==0: break
         if p.returncode!=5: break
-    (state/"invocation.json").write_text(json.dumps(invocation,sort_keys=True)+"\n")
-    if invocation["returncode"]!=0:
+    if invocation['returncode']!=0:
+        try:
+            stopped=json.loads(invocation['stdout'])
+            publication=run([PUBLISHER,'--controller-stop',sealed,stopped['run_dir']],check=False)
+            put(state,'controller-publication-'+str(uuid.uuid4())+'.json',canon({'returncode':publication.returncode,'stdout':publication.stdout,'stderr':publication.stderr}))
+        except (ValueError,KeyError): pass # Preflight failure has no valid invocation record; never invent one.
         print(json.dumps({"status":"stopped","head_sha":head,"packet_sha256":packet_sha,"invocation":invocation},sort_keys=True)); return
     summary=json.loads(invocation["stdout"]); run_dir=summary["run_dir"]
     pub=run([PUBLISHER,sealed,run_dir]); published=json.loads(pub.stdout)
     published.update({"status":"published","pr_number":prn,"head_sha":head,"packet_sha256":packet_sha})
-    tmp=state/"published.json.tmp"; tmp.write_text(json.dumps(published,sort_keys=True)+"\n"); os.replace(tmp,state/"published.json")
+    put(state,'published.json',canon(published))
     print(json.dumps(published,sort_keys=True))
 if __name__=="__main__": main()

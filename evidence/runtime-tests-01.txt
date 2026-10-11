@@ -1,0 +1,109 @@
+test_adverse_invalid_never_redrawn (test_runtime.RuntimeTests.test_adverse_invalid_never_redrawn) ... /usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-xu0k1iap/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_binding_prefix_lines_and_gate_semantics (test_runtime.RuntimeTests.test_binding_prefix_lines_and_gate_semantics) ... ok
+test_canonical_numbers_duplicates_and_adverse_nested (test_runtime.RuntimeTests.test_canonical_numbers_duplicates_and_adverse_nested) ... ok
+test_malformed_and_duplicate_output_hard_stop (test_runtime.RuntimeTests.test_malformed_and_duplicate_output_hard_stop) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-3eqdpakp/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-3eqdpakp/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-qudslcb_/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-qudslcb_/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_only_complete_nonadverse_invalid_can_retry (test_runtime.RuntimeTests.test_only_complete_nonadverse_invalid_can_retry) ... ERROR
+/usr/lib/python3.14/unittest/case.py:668: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-5jgn1uul/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with outcome.testPartExecutor(self):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_packet_tamper_unlisted_symlink_profile (test_runtime.RuntimeTests.test_packet_tamper_unlisted_symlink_profile) ... ok
+test_partial_timeout_retains_exact_bytes (test_runtime.RuntimeTests.test_partial_timeout_retains_exact_bytes) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-1n8ekrxq/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-1n8ekrxq/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_publisher_revalidates_record_raw_context_and_routing (test_runtime.RuntimeTests.test_publisher_revalidates_record_raw_context_and_routing) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-dyrlchfl/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+<frozen importlib._bootstrap>:533: DeprecationWarning: the load_module() method is deprecated and slated for removal in Python 3.15; use exec_module() instead
+ok
+test_scan_covers_task_and_manifest_and_credentials (test_runtime.RuntimeTests.test_scan_covers_task_and_manifest_and_credentials) ... ok
+test_second_invalid_stops (test_runtime.RuntimeTests.test_second_invalid_stops) ... ERROR
+/usr/lib/python3.14/unittest/case.py:668: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-8y6gqd_p/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with outcome.testPartExecutor(self):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_security_na_hard_stop_and_valid_failure_not_retried (test_runtime.RuntimeTests.test_security_na_hard_stop_and_valid_failure_not_retried) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-k1t9an1a/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-k1t9an1a/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_truncation_even_complete_text_cannot_retry (test_runtime.RuntimeTests.test_truncation_even_complete_text_cannot_retry) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-i8jprly9/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_valid_no_tools_minimized_record_and_no_redraw (test_runtime.RuntimeTests.test_valid_no_tools_minimized_record_and_no_redraw) ... /tmp/foundry-evaluator-runtime/test_runtime.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-6r9s6x1t/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/traceback.py:270: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/foundry-runtime-test-6r9s6x1t/runs/7049f301b60b21c2841fad3f27f82bb58c67dfece1546da2ecf9d43a56c9c6bd/lock' mode='a' encoding='UTF-8'>
+  tb.tb_frame.clear()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+
+======================================================================
+ERROR: test_adverse_invalid_never_redrawn (test_runtime.RuntimeTests.test_adverse_invalid_never_redrawn)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 126, in test_adverse_invalid_never_redrawn
+    with self.assertRaises(c.Reject): self.invoke()
+                                      ~~~~~~~~~~~^^
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 84, in invoke
+    with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+                                             ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/foundry-evaluator-runtime/runtime_invoke.py", line 50, in main
+    lock=open(run_dir/'lock','a'); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                                   ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_only_complete_nonadverse_invalid_can_retry (test_runtime.RuntimeTests.test_only_complete_nonadverse_invalid_can_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 106, in test_only_complete_nonadverse_invalid_can_retry
+    self.assertEqual(self.invoke()[0],5); self.assertEqual(self.invoke()[0],0)
+                                                           ~~~~~~~~~~~^^
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 84, in invoke
+    with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+                                             ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/foundry-evaluator-runtime/runtime_invoke.py", line 50, in main
+    lock=open(run_dir/'lock','a'); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                                   ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+======================================================================
+ERROR: test_second_invalid_stops (test_runtime.RuntimeTests.test_second_invalid_stops)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 111, in test_second_invalid_stops
+    self.assertEqual(self.invoke()[0],5); self.assertEqual(self.invoke()[0],4)
+                                                           ~~~~~~~~~~~^^
+  File "/tmp/foundry-evaluator-runtime/test_runtime.py", line 84, in invoke
+    with contextlib.redirect_stdout(out): rc=inv.main(['invoke',str(self.packet)])
+                                             ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/foundry-evaluator-runtime/runtime_invoke.py", line 50, in main
+    lock=open(run_dir/'lock','a'); fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                                   ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 11] Resource temporarily unavailable
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.290s
+
+FAILED (errors=3)

@@ -1,0 +1,1 @@
+Initial git diff --check found one trailing space in the publisher verdict mapping. Removed it; no behavior changed.
