@@ -59,3 +59,14 @@ Immediate Telegram escalation and agent-first recovery need a separate, authoriz
 `callback_test.py` handles only the **already-created** simulation-only inline-button request, stored in `/etc/foundry-telegram/approval-test.json`. It verifies exact nonce + chat ID + message ID; acknowledges a callback with Telegram and records at most one test decision under a root-only local path. It never writes GitHub approvals, merges, signatures or actual founder decisions. `test_callback_test.py` covers exact binding, rejection, replay, unrelated callbacks and acknowledgment failures.
 
 This is still development code, not a standing live callback service. Initial execution should be a one-shot offline test and then an authorized one-shot test handler; do not enable a polling service that processes real approval decisions. Telegram callbacks alone never satisfy founder-authentication requirements.
+
+
+## Bounded Telegram approval front-end candidate
+
+`approval_frontend.py` adds an **offline controller-contract layer** for ordinary bounded Foundry-Agent tasks. Telegram is the human approval interface, not the trust root. A callback produces a controller handoff only when the frozen task envelope, task ID, nonce, envelope SHA-256, founder Telegram user ID, chat ID, message ID, expiry, task hash, sandbox, workdir and explicit action list all still match.
+
+The currently modeled non-reserved repository actions are `commit`, `push`, `pr-create`, and `pr-update`. Authorization for one does not authorize another. Reserved actions—including merge, signing, production promotion, doctrine/governance changes, founder overrides, sealed-truth changes and provider authorization—are rejected by this candidate and remain on their stronger existing approval paths.
+
+The approval record grants no standing authority and cannot survive a task-envelope change. `test_approval_frontend.py` covers exact approval/rejection binding, founder user/chat/message mismatch, nonce/hash mismatch, expiry, reserved/unknown actions, stale/cross-action envelopes and replay.
+
+This PR still **does not** activate Telegram polling, invoke Foundry-Agent, change PAUSE/KILL, provision new secrets, write GitHub from Telegram, or commission standing approval authority. Before live use, the controller-side pending-envelope store, decision record, launcher binding, evidence custody, bot/user/chat identity and one-shot approval -> task -> evidence -> PAUSE path require separate independent review and commissioning.
