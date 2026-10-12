@@ -94,7 +94,23 @@ def summary(mode, start, end, commits, issues, prs, reviews=None, local=None):
               and included(start, end, p["closed_at"])]
     opened = [p for p in prs if p.get("created_at") and included(start, end, p["created_at"])]
     new_issues = [i for i in issues if i.get("created_at") and included(start, end, i["created_at"])]
+    if mode == "daily":
+        activity = len(commits) + len(opened) + len(merged) + len(reviews) + len(new_issues)
+        progress = ("Verified GitHub progress: "
+                    f"{len(commits)} commits, {len(opened)} new PRs, "
+                    f"{len(merged)} merges, {len(reviews)} reviews, "
+                    f"{len(new_issues)} new issues."
+                    if activity else "No new activity evidenced in tracked GitHub events in the last 24 hours.")
+        flags = sum(state in ("CHANGES_REQUESTED", "DISMISSED")
+                    for _, state, _ in reviews)
+        blocker = (f"Review flags: {flags} change-requested/dismissed reviews; see linked PRs."
+                   if flags else
+                   "Blocker status not fully verified; open work or host-level stops may exist.")
+        progress_lines = ["Progress & blockers:", progress, blocker]
+    else:
+        progress_lines = []
     lines = [
+        *progress_lines,
         f"Window (UTC): {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}",
         f"Commits: {len(commits)} | PRs updated: {len(prs)} | Issues updated: {len(issues)}",
         f"New PRs: {len(opened)} | Merged: {len(merged)} | Closed without merge: {len(closed)}",
