@@ -7,11 +7,12 @@ def assess(packet, decision, now=None):
         return {"status": "STOP", "reason": "invalid-input"}
     if set(packet) != {"task_id", "kind", "sources", "generated_at"}:
         return {"status": "STOP", "reason": "invalid-evidence-schema"}
-    if not isinstance(packet["task_id"], str) or not packet["task_id"] or packet["kind"] not in KINDS:
+    if not isinstance(packet["task_id"], str) or not packet["task_id"] or not isinstance(packet["kind"], str) or packet["kind"] not in KINDS:
         return {"status": "STOP", "reason": "invalid-task"}
     if not isinstance(packet["sources"], list) or not (1 <= len(packet["sources"]) <= 32):
         return {"status": "STOP", "reason": "missing-evidence"}
     def timeparse(value):
+        if not isinstance(value, str): raise ValueError("timestamp must be string")
         result = datetime.fromisoformat(value.replace("Z","+00:00"))
         if result.tzinfo is None: raise ValueError("timezone missing")
         return result
@@ -30,7 +31,7 @@ def assess(packet, decision, now=None):
             return {"status":"STOP","reason":"invalid-source-time"}
     if set(decision)!={"choice","probability","model"} or decision["model"]!="typesafe-ai/jev":
         return {"status":"STOP","reason":"invalid-decision-schema"}
-    if decision["choice"] not in {"routine","investigate","escalate"}:
+    if not isinstance(decision["choice"], str) or decision["choice"] not in {"routine","investigate","escalate"}:
         return {"status":"STOP","reason":"unknown-choice"}
     probability=decision["probability"]
     if type(probability) not in (int,float) or not (0<=probability<=1):
