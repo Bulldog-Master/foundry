@@ -14,6 +14,7 @@ import sys
 import urllib.request
 
 from notify import notify, render
+from local_activity import section as local_section
 
 REPO = "Bulldog-Master/foundry"
 UTC = dt.timezone.utc
@@ -72,24 +73,49 @@ def gather(start, end, fetch=urllib.request.urlopen):
     return commits, issues, prs
 
 
-def summary(mode, start, end, commits, issues, prs):
+def reviews_for(prs, start, end, fetch=urllib.request.urlopen):
+    """Fetch actual submitted review events, not just PR updated timestamps."""
+    events = []
+    for pr in prs:
+        review_list = collect(f"pulls/{pr['number']}/reviews", fetch, max_pages=4)
+        for review in review_list:
+            submitted = review.get("submitted_at")
+            if submitted and included(start, end, submitted):
+                events.append((pr["number"], review.get("state", "UNKNOWN"), submitted))
+    return sorted(events, key=lambda row: row[2], reverse=True)
+
+
+def summary(mode, start, end, commits, issues, prs, reviews=None, local=None):
     label = {"daily": "24-hour", "weekly": "7-day",
              "monthly": "previous-month"}[mode]
+    reviews = [] if reviews is None else reviews
+    merged = [p for p in prs if p.get("merged_at") and included(start, end, p["merged_at"])]
+    closed = [p for p in prs if not p.get("merged_at") and p.get("closed_at")
+              and included(start, end, p["closed_at"])]
+    opened = [p for p in prs if p.get("created_at") and included(start, end, p["created_at"])]
+    new_issues = [i for i in issues if i.get("created_at") and included(start, end, i["created_at"])]
     lines = [
         f"Window (UTC): {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}",
         f"Commits: {len(commits)} | PRs updated: {len(prs)} | Issues updated: {len(issues)}",
-        f"PRs merged in period: {sum(bool(p.get('merged_at')) and included(start, end, p['merged_at']) for p in prs)}",
+        f"New PRs: {len(opened)} | Merged: {len(merged)} | Closed without merge: {len(closed)}",
+        f"New issues: {len(new_issues)} | Submitted reviews: {len(reviews)}",
     ]
-    for item in prs[:6]:
+    for number, state, _ in reviews[:5]:
+        lines.append(f"Review {state} on PR #{number} — https://github.com/{REPO}/pull/{number}")
+    for item in merged[:5]:
+        lines.append(f"MERGED PR #{item['number']} — https://github.com/{REPO}/pull/{item['number']}")
+    for item in prs[:5]:
         lines.append(f"PR #{item['number']}: {item['state']}" +
                      (" (draft)" if item.get("draft") else "") +
                      f" — https://github.com/{REPO}/pull/{item['number']}")
     for item in issues[:4]:
         lines.append(f"Issue #{item['number']}: {item['state']}" +
                      f" — https://github.com/{REPO}/issues/{item['number']}")
-    if len(prs) > 6 or len(issues) > 4:
-        lines.append("More records exist; review GitHub for the full set.")
-    lines.append("Coverage: GitHub repository only. Host/agent/evaluator activity not yet connected.")
+    if len(prs) > 5 or len(issues) > 4 or len(reviews) > 5 or len(merged) > 5:
+        lines.append("Additional records exist; review GitHub for the full set.")
+    lines.append("Coverage: GitHub repository activity; review events use GitHub submission timestamps.")
+    lines.append(local if local is not None else
+                 "Host/agent/evaluator activity not yet connected.")
     return render("INFO", f"Foundry {label} activity summary",
                   "\n".join(lines), None)
 
@@ -101,7 +127,8 @@ def included(start, end, timestamp):
 def run(mode, now, fetch=urllib.request.urlopen):
     start, end = period(mode, now)
     commits, issues, prs = gather(start, end, fetch)
-    return summary(mode, start, end, commits, issues, prs)
+    reviews = reviews_for(prs, start, end, fetch)
+    return summary(mode, start, end, commits, issues, prs, reviews)
 
 
 def main():
