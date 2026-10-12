@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Foundry HQ read-only GitHub state watcher; no actions or approvals."""
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -61,10 +60,14 @@ def watch(state_path, *, fetch=urllib.request.urlopen, send=notify, token=None, 
     previous = json.loads(state_path.read_text()) if state_path.exists() else {}
     delta = changes(previous, current)
     if delta:
-        msg = render("INFO", "Foundry workstream update",
-                     summarize(delta), "https://github.com/Bulldog-Master/foundry/issues/29")
-        # Do not advance checkpoint if delivery failed.
-        send(msg, token=token, chat_id=chat_id)
+        for key in sorted(delta):
+            kind, number = key.split("/")
+            link_kind = "pull" if kind == "pulls" else "issues"
+            link = f"https://github.com/{REPO}/{link_kind}/{number}"
+            msg = render("INFO", "Foundry workstream update",
+                         summarize({key: delta[key]}), link)
+            # Do not advance checkpoint if delivery failed.
+            send(msg, token=token, chat_id=chat_id)
     if current != previous:
         state_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = state_path.with_name(state_path.name + ".tmp")
