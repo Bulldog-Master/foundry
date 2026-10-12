@@ -65,9 +65,9 @@ def watch(state_path, *, fetch=urllib.request.urlopen, send=notify, token=None, 
             kind, number = key.split("/")
             link_kind = "pull" if kind == "pulls" else "issues"
             link = f"https://github.com/{REPO}/{link_kind}/{number}"
-            lines.append(summarize({key: delta[key]}) + "\\n" + link)
+            lines.append(summarize({key: delta[key]}) + "\n" + link)
         msg = render("INFO", "Foundry workstream update",
-                     "\\n\\n".join(lines), None)
+                     "\n\n".join(lines), None)
         # One atomic notice per observed snapshot; never advance on failed delivery.
         send(msg, token=token, chat_id=chat_id)
     if current != previous:
