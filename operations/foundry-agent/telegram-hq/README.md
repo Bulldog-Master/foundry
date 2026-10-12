@@ -1,20 +1,20 @@
-# Foundry HQ Telegram — notification-only candidate
+# Foundry HQ Telegram — notification and bounded-approval candidate
 
 **Status:** Development candidate, **not installed, activated, or authorized for credentials**.
 
-This narrowly scoped transport sends status messages containing links to already-existing Foundry GitHub issues/PRs. It **does not** implement Telegram webhooks, bot commands, approval buttons, approval receipts, controller scheduling, evaluator routing, or protected actions.
+This development candidate includes outbound status notifications plus an offline bounded-approval contract for ordinary Foundry-Agent tasks. It does **not** activate live Telegram polling/webhooks, controller scheduling, evaluator routing, protected actions, or standing authority.
 
 ## Why this is intentionally limited
 
-Foundry-Agent is commissioned for bounded implementation, while current Foundry 1 VERSION.md expressly excludes an adopted orchestration layer and automated gates. ADR-0003 (Foundry 2) is still **PROPOSED**. A notification-only code candidate does not amend either authority boundary or activate the proposed controller.
+Foundry-Agent is commissioned for bounded implementation, while current Foundry 1 VERSION.md expressly excludes an adopted orchestration layer and automated gates. ADR-0003 (Foundry 2) is still **PROPOSED**. Neither the notification code nor the bounded approval-contract candidate amends either authority boundary or activates the proposed controller.
 
 ## Behavior and trust boundary
 
 - No third-party Python dependencies. Runs in offline dry-run mode without secrets.
 - Only accepts `https://github.com/Bulldog-Master/foundry/issues/N` or `pull/N` links. No URL shorteners, redirects, userinfo, query strings, or arbitrary domains.
-- Telegram messages **never constitute approvals**. An ACTION_REQUIRED message is only a navigational notice to a GitHub review; no decision is inferred.
+- Telegram notifications alone **never constitute approvals**. The bounded approval-contract candidate can recognize an exact founder callback for an ordinary task only after deterministic binding checks; it is not live or commissioned and cannot authorize reserved acts.
 - Real Telegram sending requires explicitly provisioned `FOUNDRY_TELEGRAM_BOT_TOKEN` and `FOUNDRY_TELEGRAM_CHAT_ID`; do not store either in the repository, tests, log files or chat transcript.
-- No incoming updates and no credential access other than the single designated outbound bot token. Bot compromise cannot change Foundry governance or invoke signed actions.
+- No live incoming approval service is activated. Existing callback code is simulation/offline validation only. Bot compromise must not change Foundry governance or invoke signed or reserved actions.
 - Delivery failure results in an error, not a silent approval or successful task transition.
 - The fixed chat ID should be restricted by external notification dispatcher policy; this script alone is **not** a secure production dispatcher.
 
@@ -67,6 +67,6 @@ This is still development code, not a standing live callback service. Initial ex
 
 The currently modeled non-reserved repository actions are `commit`, `push`, `pr-create`, and `pr-update`. Authorization for one does not authorize another. Reserved actions—including merge, signing, production promotion, doctrine/governance changes, founder overrides, sealed-truth changes and provider authorization—are rejected by this candidate and remain on their stronger existing approval paths.
 
-The approval record grants no standing authority and cannot survive a task-envelope change. `test_approval_frontend.py` covers exact approval/rejection binding, founder user/chat/message mismatch, nonce/hash mismatch, expiry, reserved/unknown actions, stale/cross-action envelopes and replay.
+The approval record grants no standing authority and cannot survive a task-envelope change. Dispatch must revalidate expiry immediately before handoff, require a canonical workdir under `/home/foundry-agent/work/`, and require the controller-resolved real workdir to match the approved path so traversal or symlink-equivalent resolution cannot widen scope. Task hashes must be valid SHA-256 hex. `test_approval_frontend.py` covers exact approval/rejection binding, founder user/chat/message mismatch, nonce/hash mismatch, callback-time and dispatch-time expiry, reserved/unknown actions, stale/cross-action envelopes, non-canonical/traversal workdirs, resolved-workdir mismatch, invalid task hashes and replay.
 
 This PR still **does not** activate Telegram polling, invoke Foundry-Agent, change PAUSE/KILL, provision new secrets, write GitHub from Telegram, or commission standing approval authority. Before live use, the controller-side pending-envelope store, decision record, launcher binding, evidence custody, bot/user/chat identity and one-shot approval -> task -> evidence -> PAUSE path require separate independent review and commissioning.
