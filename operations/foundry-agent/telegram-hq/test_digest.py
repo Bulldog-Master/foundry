@@ -31,6 +31,8 @@ def fetch(request, timeout):
             {"number": 29, "state": "open", "updated_at": "2026-10-11T18:00:00Z"},
             {"number": 28, "state": "open", "pull_request": {},
              "updated_at": "2026-10-11T18:00:00Z"}])
+    if "/pulls/30/reviews?" in path:
+        return Response([{"state": "APPROVED", "submitted_at": "2026-10-11T19:00:00Z"}])
     if "/pulls?" in path:
         return Response([{"number": 30, "state": "open", "draft": True,
                           "updated_at": "2026-10-11T18:00:00Z", "merged_at": None}])
@@ -59,6 +61,8 @@ class DigestTests(unittest.TestCase):
     def test_summary_explicit_coverage(self):
         value = m.run("daily", now, fetch)
         self.assertIn("Host/agent/evaluator activity not yet connected", value)
+        self.assertIn("Submitted reviews: 1", value)
+        self.assertIn("Review APPROVED on PR #30", value)
         self.assertIn("pull/30", value)
         self.assertIn("issues/29", value)
         self.assertIn("Commits: 1", value)
@@ -67,6 +71,15 @@ class DigestTests(unittest.TestCase):
         a, b = m.period("monthly", now)
         c, i, p = m.gather(a, b, fetch)
         self.assertEqual((len(c), len(i), len(p)), (0, 0, 0))
+
+    def test_actual_merge_events(self):
+        start, end = m.period("daily", now)
+        pr = {"number": 28, "state": "closed", "draft": False,
+              "merged_at": "2026-10-11T19:00:00Z",
+              "updated_at": "2026-10-11T19:00:00Z"}
+        msg = m.summary("daily", start, end, [], [], [pr], [])
+        self.assertIn("Merged: 1", msg)
+        self.assertIn("MERGED PR #28", msg)
 
     def test_bad_response_fails_closed(self):
         with self.assertRaises(ValueError):
