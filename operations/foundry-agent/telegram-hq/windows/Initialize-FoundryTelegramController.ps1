@@ -48,7 +48,10 @@ $baseline = Invoke-Telegram "getUpdates" @{ timeout = 0; allowed_updates = @("me
 $offset = 0
 foreach ($u in $baseline.result) { if ([int64]$u.update_id -ge $offset) { $offset = [int64]$u.update_id + 1 } }
 
-Write-Host "Send /foundry-register to the existing Foundry bot from Bulldog's PRIVATE Telegram account."
+$registrationNonce = ([guid]::NewGuid().ToString("N")).Substring(0,16)
+$registrationCommand = "/foundry-register " + $registrationNonce
+Write-Host "Send this exact command to the existing Foundry bot from Bulldog's PRIVATE Telegram account:"
+Write-Host $registrationCommand
 $deadline = (Get-Date).AddMinutes(3)
 $registration = $null
 
@@ -57,7 +60,7 @@ while ((Get-Date) -lt $deadline -and -not $registration) {
     foreach ($u in $updates.result) {
         $offset = [int64]$u.update_id + 1
         $m = $u.message
-        if (-not $m -or $m.text -ne "/foundry-register") { continue }
+        if (-not $m -or $m.text -ne $registrationCommand) { continue }
         if ($m.chat.type -ne "private") { continue }
         if ([string]$m.chat.id -ne [string]$m.from.id) { continue }
         $registration = [ordered]@{
