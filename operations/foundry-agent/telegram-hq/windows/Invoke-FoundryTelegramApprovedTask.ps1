@@ -91,7 +91,7 @@ function Get-CurrentTarget {
     }
 }
 
-$resolved = (& wsl.exe -d Foundry-Agent -u foundry-agent -- readlink -f -- $WorkDir 2>$null | Select-Object -First 1).Trim()
+$resolved = (& wsl.exe -d Foundry-Agent -u root -- readlink -f -- $WorkDir 2>$null | Select-Object -First 1).Trim()
 if ([string]::IsNullOrWhiteSpace($resolved) -or $resolved -ne $WorkDir) { Fail "workdir does not resolve exactly" }
 if (-not $resolved.StartsWith("/home/foundry-agent/work/")) { Fail "workdir outside approved root" }
 
@@ -213,7 +213,7 @@ if ((Get-Date).ToUniversalTime() -ge $expires) { Fail "approval expired before d
 if ((Get-Content -LiteralPath $statePath -Raw).Trim() -ne "PAUSE") { Fail "controller state changed before dispatch" }
 if ((Get-FileHash -LiteralPath $TaskFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskHash) { Fail "task changed after approval" }
 
-$resolvedNow = (& wsl.exe -d Foundry-Agent -u foundry-agent -- readlink -f -- $WorkDir 2>$null | Select-Object -First 1).Trim()
+$resolvedNow = (& wsl.exe -d Foundry-Agent -u root -- readlink -f -- $WorkDir 2>$null | Select-Object -First 1).Trim()
 if ($resolvedNow -ne $resolved) { Fail "workdir changed after approval" }
 
 $currentTargetNow = Get-CurrentTarget
