@@ -47,3 +47,9 @@ Offline checks: `python3 -m unittest -v test_notify.py test_event_watch.py`. No 
 - The sender's root-owned existing token and chat-ID files stay at `/etc/foundry-telegram/`; no token is committed.
 - `python3 -m unittest discover -p 'test_*.py' -v` is offline and credential-free.
 - The systemd units provided with this candidate must be reviewed, verified and installed deliberately on the existing notification host; they are not enabled merely by being committed to GitHub.
+
+## Workstream accountability candidate (not yet deployed)
+
+`accountability.py` adds tracked owner, next action, last observed GitHub update and explicit STALE/UNKNOWN flags for scanner review #29, architecture PR #28 and Telegram HQ PR #30. Default threshold: 24 hours. It explicitly **does not** equate GitHub updates or journal lines with successful execution. If sources are unavailable, status is UNKNOWN, never healthy. Stale work is flagged for coordination but **cannot be automatically dispatched**, because Foundry 1 prohibits automating evaluator assignment, gate routing and the still-uncommissioned Foundry 2 controller. The daily report includes these states after deployment. `test_accountability.py` covers stale, unknown, recent, closed and future-timestamp cases.
+
+Immediate Telegram escalation and agent-first recovery need a separate, authorized controller event producer and delegation envelope; neither is made live by this patch. Verified host/agent progress requires immutable activity records outside the actor's writable domain. No new secret or permission is required for this read-only reporting candidate.
