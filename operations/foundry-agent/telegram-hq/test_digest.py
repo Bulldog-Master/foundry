@@ -81,6 +81,23 @@ class DigestTests(unittest.TestCase):
         self.assertIn("Merged: 1", msg)
         self.assertIn("MERGED PR #28", msg)
 
+    def test_daily_progress_and_inactivity(self):
+        start, end = m.period("daily", now)
+        report = m.summary("daily", start, end, [], [], [], [])
+        self.assertIn("Progress & blockers:", report)
+        self.assertIn("No new activity evidenced", report)
+        self.assertIn("Blocker status not fully verified", report)
+
+    def test_daily_review_flags_not_called_all_clear(self):
+        start, end = m.period("daily", now)
+        report = m.summary("daily", start, end, [], [], [], [(30, "CHANGES_REQUESTED", "2026-10-11T19:00:00Z")])
+        self.assertIn("Review flags: 1", report)
+
+    def test_weekly_has_no_daily_progress_claim(self):
+        start, end = m.period("weekly", now)
+        report = m.summary("weekly", start, end, [], [], [], [])
+        self.assertNotIn("Progress & blockers:", report)
+
     def test_bad_response_fails_closed(self):
         with self.assertRaises(ValueError):
             m.api_page("commits", 1, lambda *args, **kw: Response({"error": "limited"}))
