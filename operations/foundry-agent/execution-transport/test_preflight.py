@@ -1,7 +1,7 @@
 import pathlib
 import tempfile
 import unittest
-from preflight import inspect
+from preflight import inspect, write_record
 
 
 class PreflightTests(unittest.TestCase):
@@ -31,6 +31,37 @@ class PreflightTests(unittest.TestCase):
             path=pathlib.Path(temp); (path/"AGENTS.md").write_text("fixture")
             with self.assertRaises(RuntimeError):
                 inspect(1000,path,path/"AGENTS.md",lambda name:None,None,expected_owner_uid=path.stat().st_uid)
+
+
+class OutputTests(unittest.TestCase):
+    def test_new_record_and_no_overwrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = pathlib.Path(temp)
+            output = work / "record.json"
+            write_record(output, "fixture\n", work)
+            self.assertEqual(output.read_text(), "fixture\n")
+            self.assertEqual(output.stat().st_mode & 0o777, 0o600)
+            with self.assertRaises(OSError):
+                write_record(output, "replacement", work)
+            self.assertEqual(output.read_text(), "fixture\n")
+
+    def test_reject_traversal_and_outside_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = pathlib.Path(temp)
+            for output in (work / ".." / "escape.json", work.parent / "escape.json"):
+                with self.assertRaises(RuntimeError):
+                    write_record(output, "fixture", work)
+
+    def test_reject_symlink_parent_and_leaf(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = pathlib.Path(temp)
+            (work / "real").mkdir()
+            (work / "link").symlink_to(work / "real", target_is_directory=True)
+            (work / "leaf").symlink_to(work / "real" / "record.json")
+            for output in (work / "link" / "record.json", work / "leaf"):
+                with self.assertRaises(OSError):
+                    write_record(output, "fixture", work)
+            self.assertFalse((work / "real" / "record.json").exists())
 
 
 if __name__=="__main__":

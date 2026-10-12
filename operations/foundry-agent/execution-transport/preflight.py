@@ -44,6 +44,32 @@ def inspect(uid, work, contract, which, check, expected_owner_uid=ALLOWED_UID):
     }
 
 
+def write_record(path, record, work=WORK):
+    """Create a new record below work without following directory symlinks."""
+    path = Path(path)
+    if not path.is_absolute() or ".." in path.parts:
+        raise RuntimeError("unsafe result destination")
+    try:
+        relative = path.relative_to(work)
+    except ValueError:
+        raise RuntimeError("unsafe result destination") from None
+    if not relative.parts:
+        raise RuntimeError("unsafe result destination")
+    directory = os.open(work, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for component in relative.parts[:-1]:
+            next_directory = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                     dir_fd=directory)
+            os.close(directory)
+            directory = next_directory
+        fd = os.open(relative.name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                     0o600, dir_fd=directory)
+        with os.fdopen(fd, "w") as f:
+            f.write(record)
+    finally:
+        os.close(directory)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--output", help="write preflight record; default stdout")
@@ -52,12 +78,7 @@ def main():
         result = inspect(os.geteuid(), WORK, CONTRACT, shutil.which, subprocess.run)
         record = json.dumps(result, sort_keys=True) + "\n"
         if args.output:
-            path = Path(args.output)
-            if not path.is_relative_to(WORK) or path.is_symlink() or path.exists():
-                raise RuntimeError("unsafe result destination")
-            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(fd, "w") as f:
-                f.write(record)
+            write_record(args.output, record)
         else:
             sys.stdout.write(record)
         return 0
