@@ -162,10 +162,10 @@ $sent = Invoke-Telegram "sendMessage" @{
     chat_id = [string]$identity.chat_id
     text = $text
     reply_markup = @{
-        inline_keyboard = @(@(
+        inline_keyboard = ,@(
             @{ text="Approve"; callback_data=$approveData },
             @{ text="Reject"; callback_data=$rejectData }
-        ))
+        )
     }
 }
 $messageId = [int]$sent.result.message_id
