@@ -88,7 +88,14 @@ Authoritative records:
 
 ## Controller / trust root
 
-Bulldog-Surface WSL is the temporary Foundry controller/trust-root environment.
+Bulldog-Surface is the temporary Foundry controller/trust-root environment.
+Current live controller mechanics are on Windows under
+`C:\Users\John\Foundry-Control`, including PAUSE/KILL, bounded task launch,
+Telegram approval evidence, and external task evidence.
+
+`Foundry-Agent` is a separate dedicated WSL execution environment and is not
+the controller trust root. The previously used general controller WSL
+environment is no longer the active execution/control path.
 
 The Caller authorization-signing private key belongs only on the trusted
 controller/admin environment.
@@ -170,38 +177,52 @@ Authoritative record:
 
 ### Agent Containment & Control
 
-Status: approved to resume.
+Status: bounded execution path operationally demonstrated; repository closeout
+pending merge of the reviewed candidate PRs.
 
-Scope remains bounded to the approved Foundry execution/control environments.
+Verified operating facts include:
 
-The objective is to reduce manual operational friction while preserving human
-approval, trust-domain separation, bounded authority, and independent evidence.
+- `Foundry-Agent` executes as an unprivileged dedicated WSL identity;
+- the Windows controller owns PAUSE/KILL and external evidence custody;
+- the generic Windows launcher executes one bounded task at a time;
+- Telegram founder approval has been demonstrated end-to-end for an exact
+  bounded task envelope;
+- the demonstrated Telegram-approved task dispatched Foundry-Agent without
+  Bulldog relaying Linux commands and returned the controller to `PAUSE`;
+- approval evidence and task evidence are retained outside the agent workspace.
+
+Telegram is the intended normal founder approval surface for ordinary bounded
+Foundry-Agent work. This does not grant standing reserved-act authority.
 
 Contained agents must not gain standing authority over:
 
 - signing;
 - secrets;
 - provider authorization beyond frozen mechanisms;
-- destructive/security-sensitive changes;
+- destructive/security-sensitive changes outside an explicitly bounded tested
+  procedure;
 - merges;
 - production promotion;
-- sealed truth.
+- governance/doctrine changes;
+- sealed truth;
+- founder overrides.
 
 ### Candidate Admission
 
-Status: next governance-layer work.
+Status: Protocol v0.1 and the CA-001 deterministic-rule promotion trial plan are
+merged as operational artifacts.
 
-Candidate Admission should begin as a versioned operational protocol, not
-doctrine.
+The protocol remains operational rather than doctrine. CA-001 is the first
+intended proving case and remains bounded to the exact deterministic-rule
+promotion scope recorded in its trial plan.
 
-The first intended admission case is deterministic-rule promotion.
+No checker implementation or trial execution is implied merely by the merged
+protocol/plan. Higher-impact candidates such as persistent memory systems,
+orchestration frameworks, alternate runtimes, or similar external mechanisms
+remain downstream of a successfully proven admission process.
 
-The admission process itself should be proven before higher-impact candidates
-such as persistent memory systems, orchestration frameworks, alternate
-runtimes, or similar external mechanisms are considered.
-
-Approval must remain version-bound to the component, configuration, runtime,
-environment, and evidence that were actually tested.
+Approval remains version-bound to the component, configuration, runtime,
+environment, and evidence actually tested.
 
 ## Deferred work
 
@@ -224,10 +245,13 @@ evidence identifies a genuine trust-boundary failure.
 The current intended sequence is:
 
 1. Preserve Caller-1 and Sandbox-1 as frozen reference environments.
-2. Resume bounded Agent Containment & Control work.
-3. Formalize Candidate Admission Protocol v0.1.
-4. Use deterministic-rule promotion as the first admission test.
-5. Reconcile lessons from that test before expanding the admission process.
+2. Complete repository closeout and independent review of the bounded
+   Foundry-Agent execution transport and Telegram approval bridge.
+3. Keep Telegram as the normal approval surface for ordinary bounded
+   Foundry-Agent work after the reviewed bridge is merged/commissioned.
+4. Execute CA-001 deterministic-rule promotion as the first Candidate Admission
+   trial when its implementation is explicitly authorized.
+5. Reconcile lessons from CA-001 before expanding the admission process.
 6. Test shared-state isolation as a later candidate because of its direct
    relevance to evaluator independence.
 7. Test controlled persistent memory separately.
