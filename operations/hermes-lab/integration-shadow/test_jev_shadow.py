@@ -16,4 +16,8 @@ class Tests(unittest.TestCase):
  def test_wrong_model(self):self.assertEqual(assess(P,{**D,"model":"unknown"})["status"],"STOP")
  def test_expanded_schema(self):self.assertEqual(assess({**P,"run":True},D)["status"],"STOP")
  def test_bad_source(self):self.assertEqual(assess({**P,"sources":[{"id":"x"}]},D)["status"],"STOP")
+ def test_unhashable_task_kind(self):self.assertEqual(assess({**P,"kind":[]},D)["status"],"STOP")
+ def test_unhashable_choice(self):self.assertEqual(assess(P,{**D,"choice":[]})["status"],"STOP")
+ def test_invalid_timestamp_type(self):self.assertEqual(assess({**P,"generated_at":[]},D)["status"],"STOP")
+ def test_invalid_source_timestamp_type(self):self.assertEqual(assess({**P,"sources":[{"id":"x","observed_at":[]}]},D)["status"],"STOP")
 if __name__=="__main__":unittest.main()
