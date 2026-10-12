@@ -20,13 +20,13 @@ PROTECTED = (Path("/opt/foundry-evaluator/current"),
              Path("/etc/foundry-telegram"))
 
 
-def inspect(uid, work, contract, which, check):
+def inspect(uid, work, contract, which, check, expected_owner_uid=ALLOWED_UID):
     if uid != ALLOWED_UID:
         raise RuntimeError("wrong actor uid")
     if not work.is_dir() or not contract.is_file():
         raise RuntimeError("commissioned workspace contract missing")
-    if not (work.stat().st_uid == ALLOWED_UID and
-            contract.stat().st_uid in (0, ALLOWED_UID)):
+    if not (work.stat().st_uid == expected_owner_uid and
+            contract.stat().st_uid in (0, expected_owner_uid)):
         raise RuntimeError("workspace or contract ownership drift")
     codex = which("codex")
     if not codex:
