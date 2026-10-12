@@ -20,6 +20,9 @@ RESERVED_ACTIONS = {
 }
 WORK_ROOT = "/home/foundry-agent/work"
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+REPOSITORY = "Bulldog-Master/foundry"
+BRANCH_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 
 
 def canonical_bytes(envelope):
@@ -50,10 +53,39 @@ def validate_workdir(value):
     return normalized
 
 
+def validate_target(envelope):
+    repository = envelope["repository"]
+    branch = envelope["branch"]
+    expected_head = envelope["expected_head_sha"]
+    pr_number = envelope["pr_number"]
+    if repository != REPOSITORY:
+        raise ValueError("repository not allowed")
+    if (not isinstance(branch, str) or not branch or not BRANCH_RE.fullmatch(branch)
+            or ".." in branch or branch.startswith("/") or branch.endswith("/")):
+        raise ValueError("invalid branch")
+    if not isinstance(expected_head, str) or not GIT_SHA_RE.fullmatch(expected_head):
+        raise ValueError("invalid expected head")
+    actions = envelope["actions"]
+    if "pr-create" in actions and "pr-update" in actions:
+        raise ValueError("conflicting PR actions")
+    if "pr-update" in actions:
+        if not isinstance(pr_number, int) or isinstance(pr_number, bool) or pr_number <= 0:
+            raise ValueError("pr number required")
+    elif pr_number is not None:
+        raise ValueError("unexpected pr number")
+    return {
+        "repository": repository,
+        "branch": branch,
+        "expected_head_sha": expected_head,
+        "pr_number": pr_number,
+    }
+
+
 def validate_envelope(envelope, now):
     required = {
         "task_id", "nonce", "expires_at", "task_sha256", "workdir",
-        "sandbox", "actions", "summary",
+        "sandbox", "actions", "summary", "repository", "branch",
+        "expected_head_sha", "pr_number",
     }
     if not isinstance(envelope, dict) or set(envelope) != required:
         raise ValueError("unexpected envelope schema")
@@ -75,6 +107,7 @@ def validate_envelope(envelope, now):
         raise ValueError("reserved action")
     if any(a not in ALLOWED_ACTIONS for a in actions):
         raise ValueError("unknown action")
+    validate_target(envelope)
     expires = parse_utc(envelope["expires_at"])
     now = now.astimezone(dt.timezone.utc)
     if expires <= now:
@@ -128,6 +161,7 @@ def make_decision(callback, pending, envelope, prior, now):
         "envelope_sha256": envelope_sha256(envelope),
         "task_sha256": envelope["task_sha256"],
         "actions": list(envelope["actions"]),
+        "target": validate_target(envelope),
         "decided_at": now.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "telegram_update_id": callback.get("_update_id"),
         "chat_id": str((callback.get("message") or {}).get("chat", {}).get("id")),
@@ -136,13 +170,16 @@ def make_decision(callback, pending, envelope, prior, now):
     }
 
 
-def controller_handoff(decision, envelope, now, resolved_workdir):
+def controller_handoff(decision, envelope, now, resolved_workdir, current_target):
     """Return a bounded handoff only for an exact, still-valid APPROVE record."""
     validate_envelope(envelope, now)
     requested = validate_workdir(envelope["workdir"])
     resolved = validate_workdir(resolved_workdir)
     if requested != resolved:
         raise ValueError("workdir resolution mismatch")
+    target = validate_target(envelope)
+    if not isinstance(current_target, dict) or current_target != target:
+        raise ValueError("repository target drift")
     if not isinstance(decision, dict) or decision.get("decision") != "APPROVE":
         raise ValueError("approval required")
     if decision.get("envelope_sha256") != envelope_sha256(envelope):
@@ -151,6 +188,8 @@ def controller_handoff(decision, envelope, now, resolved_workdir):
         raise ValueError("task hash mismatch")
     if decision.get("actions") != envelope.get("actions"):
         raise ValueError("action mismatch")
+    if decision.get("target") != target:
+        raise ValueError("target mismatch")
     return {
         "task_id": envelope["task_id"],
         "task_sha256": envelope["task_sha256"],
@@ -158,6 +197,7 @@ def controller_handoff(decision, envelope, now, resolved_workdir):
         "workdir": resolved,
         "sandbox": envelope["sandbox"],
         "actions": list(envelope["actions"]),
+        "target": target,
         "approval_record": decision,
         "standing_authority": False,
     }

@@ -15,7 +15,13 @@ ENV = {
     "sandbox": "workspace-write",
     "actions": ["commit", "push", "pr-update"],
     "summary": "Update existing bounded PR",
+    "repository": "Bulldog-Master/foundry",
+    "branch": "foundry/telegram-hq-notifier-candidate",
+    "expected_head_sha": "e" * 40,
+    "pr_number": 30,
 }
+TARGET = {key: ENV[key] for key in ("repository", "branch", "expected_head_sha", "pr_number")}
+
 PENDING = {
     "task_id": ENV["task_id"],
     "envelope_sha256": envelope_sha256(ENV),
@@ -40,7 +46,7 @@ class ApprovalFrontendTests(unittest.TestCase):
     def test_exact_approval_binding_and_handoff(self):
         self.assertEqual(check_callback(cb(), PENDING, ENV, NOW), "APPROVE")
         decision = make_decision(cb(), PENDING, ENV, None, NOW)
-        handoff = controller_handoff(decision, ENV, NOW, ENV["workdir"])
+        handoff = controller_handoff(decision, ENV, NOW, ENV["workdir"], TARGET)
         self.assertEqual(handoff["actions"], ENV["actions"])
         self.assertFalse(handoff["standing_authority"])
 
@@ -48,7 +54,7 @@ class ApprovalFrontendTests(unittest.TestCase):
         event = cb(f"reject:{ENV['task_id']}:{ENV['nonce']}")
         self.assertEqual(check_callback(event, PENDING, ENV, NOW), "REJECT")
         with self.assertRaises(ValueError):
-            controller_handoff(make_decision(event, PENDING, ENV, None, NOW), ENV, NOW, ENV["workdir"])
+            controller_handoff(make_decision(event, PENDING, ENV, None, NOW), ENV, NOW, ENV["workdir"], TARGET)
 
     def test_wrong_user_chat_message_nonce_or_hash_rejected(self):
         self.assertIsNone(check_callback(cb(user="778"), PENDING, ENV, NOW))
@@ -64,7 +70,7 @@ class ApprovalFrontendTests(unittest.TestCase):
         self.assertIsNone(check_callback(cb(), PENDING, ENV, later))
         decision = make_decision(cb(), PENDING, ENV, None, NOW)
         with self.assertRaises(ValueError):
-            controller_handoff(decision, ENV, later, ENV["workdir"])
+            controller_handoff(decision, ENV, later, ENV["workdir"], TARGET)
 
     def test_reserved_or_unknown_action_rejected(self):
         for action in ("merge", "sign", "production-promotion", "unknown"):
@@ -76,10 +82,10 @@ class ApprovalFrontendTests(unittest.TestCase):
         decision = make_decision(cb(), PENDING, ENV, None, NOW)
         changed = dict(ENV, actions=["commit"])
         with self.assertRaises(ValueError):
-            controller_handoff(decision, changed, NOW, changed["workdir"])
+            controller_handoff(decision, changed, NOW, changed["workdir"], {key: changed[key] for key in TARGET})
         changed = dict(ENV, task_sha256="b" * 64)
         with self.assertRaises(ValueError):
-            controller_handoff(decision, changed, NOW, changed["workdir"])
+            controller_handoff(decision, changed, NOW, changed["workdir"], {key: changed[key] for key in TARGET})
 
     def test_replay_does_not_replace_first_decision(self):
         first = make_decision(cb(), PENDING, ENV, None, NOW)
@@ -102,7 +108,7 @@ class ApprovalFrontendTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             controller_handoff(
                 decision, ENV, NOW,
-                "/home/foundry-agent/work/elsewhere",
+                "/home/foundry-agent/work/elsewhere", TARGET,
             )
 
     def test_task_hash_must_be_hex(self):
@@ -110,6 +116,55 @@ class ApprovalFrontendTests(unittest.TestCase):
             env = dict(ENV, task_sha256=bad_hash)
             pending = dict(PENDING, envelope_sha256=envelope_sha256(env))
             self.assertIsNone(check_callback(cb(), pending, env, NOW))
+
+    def test_repository_target_drift_rejected(self):
+        decision = make_decision(cb(), PENDING, ENV, None, NOW)
+        cases = (
+            ("repository", "Other/repo"),
+            ("branch", "other-branch"),
+            ("expected_head_sha", "f" * 40),
+            ("pr_number", 31),
+        )
+        for key, value in cases:
+            current = dict(TARGET)
+            current[key] = value
+            with self.assertRaises(ValueError):
+                controller_handoff(decision, ENV, NOW, ENV["workdir"], current)
+
+    def test_approved_target_mutation_rejected(self):
+        decision = make_decision(cb(), PENDING, ENV, None, NOW)
+        cases = (
+            ("repository", "Other/repo"),
+            ("branch", "other-branch"),
+            ("expected_head_sha", "f" * 40),
+            ("pr_number", 31),
+        )
+        for key, value in cases:
+            changed = dict(ENV)
+            changed[key] = value
+            current = {name: changed[name] for name in TARGET}
+            with self.assertRaises(ValueError):
+                controller_handoff(decision, changed, NOW, changed["workdir"], current)
+
+    def test_pr_update_requires_pr_number(self):
+        env = dict(ENV, pr_number=None)
+        pending = dict(PENDING, envelope_sha256=envelope_sha256(env))
+        self.assertIsNone(check_callback(cb(), pending, env, NOW))
+
+    def test_pr_number_forbidden_without_update(self):
+        env = dict(ENV, actions=["commit"], pr_number=30)
+        pending = dict(PENDING, envelope_sha256=envelope_sha256(env))
+        self.assertIsNone(check_callback(cb(), pending, env, NOW))
+
+    def test_conflicting_pr_actions_rejected(self):
+        env = dict(ENV, actions=["pr-create", "pr-update"])
+        pending = dict(PENDING, envelope_sha256=envelope_sha256(env))
+        self.assertIsNone(check_callback(cb(), pending, env, NOW))
+
+    def test_invalid_expected_head_rejected(self):
+        env = dict(ENV, expected_head_sha="g" * 40)
+        pending = dict(PENDING, envelope_sha256=envelope_sha256(env))
+        self.assertIsNone(check_callback(cb(), pending, env, NOW))
 
 
 if __name__ == "__main__":
