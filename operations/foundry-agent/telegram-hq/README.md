@@ -30,3 +30,9 @@ python3 notify.py --kind INFO --title "Foundry test" --summary "Notification can
 Use existing Foundry Agent Containment & Control and controller commissioning process to decide sender host, outbound network allowlist, root-held secret provision, and identity of recipients. Prove negative tests for outbound destination, bot token exfiltration, message spoofing, replay, duplicate notices, and PII/log leakage. Independently review any authority-bound approval-link service. Telegram must never become a signing or founder-authentication root.
 
 **Stopping point:** candidate code review; **do not run with --send** until the appropriate release and secret-authority approvals.
+
+## GitHub watch candidate (not activated)
+
+`event_watch.py` checks only PR #28, PR #30 and Issue #29 through the read-only public GitHub API. Its first successful run creates a baseline without sending a message; subsequent changes generate one notification and update a root-owned local deduplication checkpoint only after Telegram confirms delivery. State failure preserves the previous checkpoint. It does not run unattended until separately authorized and scheduled on an approved notifications host. It does not decide approvals or task advancement.
+
+Offline checks: `python3 -m unittest -v test_notify.py test_event_watch.py`. No bot token is needed for these tests. Any eventual service must use `/etc/foundry-telegram/bot-token` and `/etc/foundry-telegram/chat-id` from the trusted host, with root-owned permissions and independently authorized outbound access; the notifier must not be executed as an unprivileged implementation agent holding those secrets.
