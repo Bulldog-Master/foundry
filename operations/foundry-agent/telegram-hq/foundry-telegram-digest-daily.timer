@@ -1,0 +1,10 @@
+[Unit]
+Description=Foundry HQ daily 24-hour digest
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+Unit=foundry-telegram-digest@daily.service
+
+[Install]
+WantedBy=timers.target
