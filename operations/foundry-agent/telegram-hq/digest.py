@@ -124,11 +124,12 @@ def included(start, end, timestamp):
     return start <= parse_time(timestamp) < end
 
 
-def run(mode, now, fetch=urllib.request.urlopen):
+def run(mode, now, fetch=urllib.request.urlopen, include_local=False):
     start, end = period(mode, now)
     commits, issues, prs = gather(start, end, fetch)
     reviews = reviews_for(prs, start, end, fetch)
-    return summary(mode, start, end, commits, issues, prs, reviews)
+    local = local_section(start, end) if include_local else None
+    return summary(mode, start, end, commits, issues, prs, reviews, local)
 
 
 def main():
@@ -142,7 +143,7 @@ def main():
         for p in credential_files:
             if p.is_symlink() or not p.is_file() or p.stat().st_mode & 0o077:
                 raise ValueError("unsafe credential file")
-        text = run(args.period, dt.datetime.now(UTC))
+        text = run(args.period, dt.datetime.now(UTC), include_local=True)
         notify(text, token=credential_files[0].read_text().strip(),
                chat_id=credential_files[1].read_text().strip())
         print("Digest delivered")
