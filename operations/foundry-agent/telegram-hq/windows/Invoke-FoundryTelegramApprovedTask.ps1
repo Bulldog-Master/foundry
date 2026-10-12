@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$TaskFile,
     [Parameter(Mandatory=$true)][string]$WorkDir,
+    [Parameter(Mandatory=$true)][ValidateLength(1,1000)][string]$Summary,
     [ValidateSet("read-only","workspace-write")][string]$Sandbox = "workspace-write",
     [string[]]$Actions = @(),
     [string]$Repository = "Bulldog-Master/foundry",
@@ -114,7 +115,7 @@ $envelope = [ordered]@{
     workdir = $WorkDir
     sandbox = $Sandbox
     actions = @($Actions)
-    summary = "Bounded Foundry-Agent task"
+    summary = $Summary
     repository = $Repository
     branch = $(if ($repoAction) { $Branch } else { $null })
     expected_head_sha = $(if ($repoAction) { $ExpectedHeadSha.ToLowerInvariant() } else { $null })
@@ -144,6 +145,7 @@ $text = @(
     "FOUNDRY APPROVAL REQUIRED",
     "",
     "Task: $taskId",
+    "Summary: $Summary",
     "Task SHA-256: $taskHash",
     "Envelope SHA-256: $envelopeSha",
     "Sandbox: $Sandbox",
@@ -220,17 +222,26 @@ $currentTargetNow = Get-CurrentTarget
 if (($currentTargetNow | ConvertTo-Json -Compress) -ne ($currentTarget | ConvertTo-Json -Compress)) { Fail "repository target changed after approval" }
 
 $launcherOutput = $null
+$launcherFailure = $null
 try {
     Invoke-Telegram "sendMessage" @{ chat_id=[string]$identity.chat_id; text="Approved $taskId. Dispatching Foundry-Agent now." } | Out-Null
     $launcherOutput = & $launcher -TaskFile $TaskFile -WorkDir $WorkDir -Sandbox $Sandbox 2>&1 | Out-String
-    $launcherOutput | Set-Content -LiteralPath (Join-Path $evidence "launcher-output.txt") -Encoding UTF8
 }
-finally {
-    Set-Content -LiteralPath $statePath -Value "PAUSE" -Encoding ASCII
+catch {
+    $launcherFailure = $_.Exception.Message
+}
+if ($launcherOutput) {
+    $launcherOutput | Set-Content -LiteralPath (Join-Path $evidence "launcher-output.txt") -Encoding UTF8
 }
 
 $finalState=(Get-Content -LiteralPath $statePath -Raw).Trim()
-if ($finalState -ne "PAUSE") { Fail "failed to restore PAUSE" }
+if ($finalState -ne "PAUSE") {
+    try {
+        Invoke-Telegram "sendMessage" @{ chat_id=[string]$identity.chat_id; text="FOUNDRY HARD STOP: controller state is $finalState after task $taskId. State was preserved; manual recovery is required." } | Out-Null
+    } catch {}
+    Fail "controller did not return to PAUSE; state preserved as $finalState"
+}
+if ($launcherFailure) { Fail "launcher failed after returning to PAUSE: $launcherFailure" }
 
 $job=[regex]::Match($launcherOutput,'JOB=([^\r\n]+)').Groups[1].Value.Trim()
 $exit=[regex]::Match($launcherOutput,'CODEX_EXIT=([^\r\n]+)').Groups[1].Value.Trim()
