@@ -10,7 +10,7 @@ class PreflightTests(unittest.TestCase):
             work=pathlib.Path(temp)
             contract=work/"AGENTS.md"
             contract.write_text("test fixture")
-            result=inspect(1000,work,contract,lambda name:"/fixture/codex",None)
+            result=inspect(1000,work,contract,lambda name:"/fixture/codex",None,expected_owner_uid=work.stat().st_uid)
             self.assertEqual(result["read_only_preflight"],"PASS")
             self.assertEqual(result["task_execution"],"NOT_ACTIVATED")
 
@@ -30,7 +30,7 @@ class PreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path=pathlib.Path(temp); (path/"AGENTS.md").write_text("fixture")
             with self.assertRaises(RuntimeError):
-                inspect(1000,path,path/"AGENTS.md",lambda name:None,None)
+                inspect(1000,path,path/"AGENTS.md",lambda name:None,None,expected_owner_uid=path.stat().st_uid)
 
 
 if __name__=="__main__":
