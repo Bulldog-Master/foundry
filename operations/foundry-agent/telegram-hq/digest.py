@@ -15,6 +15,8 @@ import urllib.request
 
 from notify import notify, render
 from local_activity import section as local_section
+from accountability import assess, digest_lines
+from event_watch import get_state
 
 REPO = "Bulldog-Master/foundry"
 UTC = dt.timezone.utc
@@ -85,7 +87,7 @@ def reviews_for(prs, start, end, fetch=urllib.request.urlopen):
     return sorted(events, key=lambda row: row[2], reverse=True)
 
 
-def summary(mode, start, end, commits, issues, prs, reviews=None, local=None):
+def summary(mode, start, end, commits, issues, prs, reviews=None, local=None, accountability=None):
     label = {"daily": "24-hour", "weekly": "7-day",
              "monthly": "previous-month"}[mode]
     reviews = [] if reviews is None else reviews
@@ -111,6 +113,7 @@ def summary(mode, start, end, commits, issues, prs, reviews=None, local=None):
         progress_lines = []
     lines = [
         *progress_lines,
+        *(accountability.splitlines() if accountability else []),
         f"Window (UTC): {start:%Y-%m-%d %H:%M} to {end:%Y-%m-%d %H:%M}",
         f"Commits: {len(commits)} | PRs updated: {len(prs)} | Issues updated: {len(issues)}",
         f"New PRs: {len(opened)} | Merged: {len(merged)} | Closed without merge: {len(closed)}",
@@ -140,12 +143,13 @@ def included(start, end, timestamp):
     return start <= parse_time(timestamp) < end
 
 
-def run(mode, now, fetch=urllib.request.urlopen, include_local=False):
+def run(mode, now, fetch=urllib.request.urlopen, include_local=False, include_accountability=False):
     start, end = period(mode, now)
     commits, issues, prs = gather(start, end, fetch)
     reviews = reviews_for(prs, start, end, fetch)
     local = local_section(start, end) if include_local else None
-    return summary(mode, start, end, commits, issues, prs, reviews, local)
+    accountable = digest_lines(assess(now, get_state(fetch=fetch))) if include_accountability else None
+    return summary(mode, start, end, commits, issues, prs, reviews, local, accountable)
 
 
 def main():
@@ -159,7 +163,7 @@ def main():
         for p in credential_files:
             if p.is_symlink() or not p.is_file() or p.stat().st_mode & 0o077:
                 raise ValueError("unsafe credential file")
-        text = run(args.period, dt.datetime.now(UTC), include_local=True)
+        text = run(args.period, dt.datetime.now(UTC), include_local=True, include_accountability=True)
         notify(text, token=credential_files[0].read_text().strip(),
                chat_id=credential_files[1].read_text().strip())
         print("Digest delivered")
