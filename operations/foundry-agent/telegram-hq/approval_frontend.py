@@ -10,12 +10,16 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import posixpath
+import re
 
 ALLOWED_ACTIONS = {"commit", "push", "pr-create", "pr-update"}
 RESERVED_ACTIONS = {
     "merge", "sign", "production-promotion", "doctrine-change",
     "founder-override", "sealed-truth-change", "provider-authorization",
 }
+WORK_ROOT = "/home/foundry-agent/work"
+SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 def canonical_bytes(envelope):
@@ -35,6 +39,17 @@ def parse_utc(value):
     return parsed.astimezone(dt.timezone.utc)
 
 
+def validate_workdir(value):
+    if not isinstance(value, str) or not value or "\x00" in value:
+        raise ValueError("invalid workdir")
+    normalized = posixpath.normpath(value)
+    if normalized != value:
+        raise ValueError("non-canonical workdir")
+    if normalized == WORK_ROOT or not normalized.startswith(WORK_ROOT + "/"):
+        raise ValueError("workdir outside approved root")
+    return normalized
+
+
 def validate_envelope(envelope, now):
     required = {
         "task_id", "nonce", "expires_at", "task_sha256", "workdir",
@@ -48,11 +63,10 @@ def validate_envelope(envelope, now):
         raise ValueError("invalid nonce")
     if envelope["sandbox"] not in ("read-only", "workspace-write"):
         raise ValueError("invalid sandbox")
-    if not isinstance(envelope["workdir"], str) or not envelope["workdir"].startswith("/home/foundry-agent/work/"):
-        raise ValueError("invalid workdir")
+    validate_workdir(envelope["workdir"])
     if not isinstance(envelope["summary"], str) or not envelope["summary"].strip():
         raise ValueError("invalid summary")
-    if not isinstance(envelope["task_sha256"], str) or len(envelope["task_sha256"]) != 64:
+    if not isinstance(envelope["task_sha256"], str) or not SHA256_RE.fullmatch(envelope["task_sha256"]):
         raise ValueError("invalid task hash")
     actions = envelope["actions"]
     if not isinstance(actions, list) or len(actions) != len(set(actions)):
@@ -122,8 +136,13 @@ def make_decision(callback, pending, envelope, prior, now):
     }
 
 
-def controller_handoff(decision, envelope):
-    """Return a bounded handoff only for an exact APPROVE record."""
+def controller_handoff(decision, envelope, now, resolved_workdir):
+    """Return a bounded handoff only for an exact, still-valid APPROVE record."""
+    validate_envelope(envelope, now)
+    requested = validate_workdir(envelope["workdir"])
+    resolved = validate_workdir(resolved_workdir)
+    if requested != resolved:
+        raise ValueError("workdir resolution mismatch")
     if not isinstance(decision, dict) or decision.get("decision") != "APPROVE":
         raise ValueError("approval required")
     if decision.get("envelope_sha256") != envelope_sha256(envelope):
@@ -136,7 +155,7 @@ def controller_handoff(decision, envelope):
         "task_id": envelope["task_id"],
         "task_sha256": envelope["task_sha256"],
         "envelope_sha256": decision["envelope_sha256"],
-        "workdir": envelope["workdir"],
+        "workdir": resolved,
         "sandbox": envelope["sandbox"],
         "actions": list(envelope["actions"]),
         "approval_record": decision,
