@@ -60,14 +60,16 @@ def watch(state_path, *, fetch=urllib.request.urlopen, send=notify, token=None, 
     previous = json.loads(state_path.read_text()) if state_path.exists() else {}
     delta = changes(previous, current)
     if delta:
+        lines = []
         for key in sorted(delta):
             kind, number = key.split("/")
             link_kind = "pull" if kind == "pulls" else "issues"
             link = f"https://github.com/{REPO}/{link_kind}/{number}"
-            msg = render("INFO", "Foundry workstream update",
-                         summarize({key: delta[key]}), link)
-            # Do not advance checkpoint if delivery failed.
-            send(msg, token=token, chat_id=chat_id)
+            lines.append(summarize({key: delta[key]}) + "\\n" + link)
+        msg = render("INFO", "Foundry workstream update",
+                     "\\n\\n".join(lines), None)
+        # One atomic notice per observed snapshot; never advance on failed delivery.
+        send(msg, token=token, chat_id=chat_id)
     if current != previous:
         state_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = state_path.with_name(state_path.name + ".tmp")
