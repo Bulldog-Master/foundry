@@ -5,12 +5,13 @@ import sys
 ALLOWED = frozenset({"local-analysis", "coding", "independent-evaluation"})
 
 def route(task, available):
-    """Return a proposed backend only, with no invocation or authorization."""
+    """Propose only; authorized/available are supplied data, not verified facts."""
     if not isinstance(task, dict) or not isinstance(available, dict):
         return {"status": "STOP", "reason": "invalid-input"}
     if set(task) != {"id", "kind", "authorized", "requires_independence"}:
         return {"status": "STOP", "reason": "unexpected-schema"}
-    if not isinstance(task["id"], str) or not task["id"] or task["kind"] not in ALLOWED:
+    if (not isinstance(task["id"], str) or not task["id"]
+            or not isinstance(task["kind"], str) or task["kind"] not in ALLOWED):
         return {"status": "STOP", "reason": "invalid-task"}
     if type(task["authorized"]) is not bool or type(task["requires_independence"]) is not bool:
         return {"status": "STOP", "reason": "invalid-flags"}
@@ -29,7 +30,7 @@ def main():
     try:
         payload = json.load(sys.stdin)
         result = route(payload.get("task"), payload.get("available")) if isinstance(payload, dict) and set(payload) == {"task", "available"} else {"status": "STOP", "reason": "unexpected-envelope"}
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):
         result = {"status": "STOP", "reason": "malformed-json"}
     print(json.dumps(result, sort_keys=True))
 

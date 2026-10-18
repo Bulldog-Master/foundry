@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
 """Read-only Hermes and Ollama as-built probe for the contained Standalone lab."""
 import argparse
+import http.client
 import json
 import os
 import pathlib
 import shutil
-import subprocess
+import urllib.error
 import urllib.request
 
 OLLAMA = "http://127.0.0.1:11434/api/tags"
 ALLOWED_ROOT = pathlib.Path("/srv/hermes-lab/foundry-agent")
 
-def probe(command=subprocess.run, opener=urllib.request.urlopen, which=shutil.which):
+class RejectRedirects(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def open_loopback(url, timeout):
+    client = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}), RejectRedirects())
+    return client.open(url, timeout=timeout)
+
+
+def probe(opener=open_loopback, which=shutil.which):
     # Always avoid subprocess shells, environment dumps, credentials and model prompts.
     info = {"mode": "SHADOW_READ_ONLY", "execution_enabled": False,
             "authority": "NONE", "hermes": {}, "ollama": {}}
@@ -26,6 +38,8 @@ def probe(command=subprocess.run, opener=urllib.request.urlopen, which=shutil.wh
     try:
         with opener(OLLAMA, timeout=5) as response:
             document = json.load(response)
+        if not isinstance(document, dict):
+            raise ValueError("invalid Ollama response")
         models = document.get("models")
         if not isinstance(models, list):
             raise ValueError("invalid Ollama response")
@@ -34,7 +48,9 @@ def probe(command=subprocess.run, opener=urllib.request.urlopen, which=shutil.wh
             "model_count": len(models),
             "models": sorted(str(x.get("name", "")) for x in models if isinstance(x, dict))[:25],
         }
-    except (ValueError, OSError, TimeoutError, json.JSONDecodeError):
+    except (ValueError, OSError, http.client.HTTPException) as error:
+        if isinstance(error, urllib.error.HTTPError):
+            error.close()
         info["ollama"] = {"reachable": False, "model_count": None, "models": []}
     return info
 

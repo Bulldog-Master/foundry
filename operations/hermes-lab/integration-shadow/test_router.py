@@ -1,5 +1,10 @@
+import contextlib
+import io
+import json
+import sys
 import unittest
-from router import route
+from unittest import mock
+from router import route, main
 
 AVAIL = {"ollama": True, "codex": True, "claude": True}
 def task(kind="coding", authorized=True, independent=False):
@@ -26,6 +31,31 @@ class ShadowRoutingTests(unittest.TestCase):
         self.assertEqual(route({**task(), "tools": ["shell"]}, AVAIL)["status"], "STOP")
     def test_no_actor_authority(self):
         self.assertFalse(route(task(), AVAIL)["standing_authority"])
+
+    def test_non_string_kind_returns_stop(self):
+        for kind in ([], {}):
+            with self.subTest(kind=kind):
+                self.assertEqual(route(task(kind), AVAIL)["status"], "STOP")
+
+    def test_deeply_nested_stdin_returns_json_stop(self):
+        depth = sys.getrecursionlimit() + 100
+        payload = "[" * depth + "]" * depth
+        output = io.StringIO()
+        with mock.patch("sys.stdin", io.StringIO(payload)):
+            with contextlib.redirect_stdout(output):
+                main()
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["status"], "STOP")
+        self.assertIn(result["reason"], {"malformed-json", "unexpected-envelope"})
+
+    def test_json_decoder_recursion_error_returns_stop(self):
+        # Decoder recursion limits differ across Python versions.
+        output = io.StringIO()
+        with mock.patch("router.json.load", side_effect=RecursionError):
+            with contextlib.redirect_stdout(output):
+                main()
+        self.assertEqual(json.loads(output.getvalue()),
+                         {"status": "STOP", "reason": "malformed-json"})
 
 if __name__ == "__main__":
     unittest.main()
