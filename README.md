@@ -41,7 +41,7 @@ A contained Foundry operational agent is commissioned for bounded implementation
 
 ## What Foundry contains
 
-Foundry holds two kinds of content, and the distinction matters.
+Foundry holds three categories of content, and the distinction matters.
 
 **Ratifiable pre-commitments** may exist before they have been exercised in anger:
 
@@ -55,9 +55,11 @@ Foundry holds two kinds of content, and the distinction matters.
 - **Lessons** — learning extracted from real work, promoted from Candidate to Verified only with evidence and explicit founder approval.
 - **Operational records** — a narrow subtype of operational knowledge used to record current external tooling or environment state relevant to Foundry execution. They are subordinate to the Constitution and ADRs, carry no standing gate authority, and may become stale or be superseded as operating reality changes. A record of external tooling such as Hermes does not make that tooling part of Foundry architecture or adopt it as a Foundry framework.
 
+**Experimental records** are scoped, evidence-generating artifacts, including the [`dual-model pilot preregistration`](./experiments/dual-model-pilot-preregistration.md), [`Run-009 integrity record`](./experiments/run009-integrity-record.md), and [`protocol enforcement matrix`](./experiments/protocol-enforcement-matrix.md). They are subordinate to the Constitution and ADRs and do not themselves authorize replication, standing architecture, evaluator assignments, gate changes, or operational authority. Any such decision remains subject to Foundry's manual governance, explicit human approval, and human final authority.
+
 ## What Foundry is not
 
-Foundry is not a wiki, a design system, a style guide, a process handbook, or a CI configuration. Content that is not a constitutional constraint, a blank template, a real decision, a real lesson from real work, a real product charter, or a narrowly scoped operational record does not belong here.
+Foundry is not a wiki, a design system, a style guide, a process handbook, or a CI configuration. Content that is not a constitutional constraint, a blank template, a real decision, a real lesson from real work, a real product charter, a narrowly scoped operational record, or a scoped experimental record does not belong here.
 
 ## Governance
 
