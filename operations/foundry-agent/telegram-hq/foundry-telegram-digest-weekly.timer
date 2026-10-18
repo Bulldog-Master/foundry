@@ -1,0 +1,10 @@
+[Unit]
+Description=Foundry HQ weekly 7-day digest
+
+[Timer]
+OnCalendar=Mon *-*-* 08:05:00
+Persistent=true
+Unit=foundry-telegram-digest@weekly.service
+
+[Install]
+WantedBy=timers.target

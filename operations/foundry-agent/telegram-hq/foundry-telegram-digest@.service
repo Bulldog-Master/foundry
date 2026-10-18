@@ -1,0 +1,16 @@
+[Unit]
+Description=Foundry HQ Telegram %i GitHub activity digest
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/foundry-telegram
+ExecStart=/usr/bin/python3 /opt/foundry-telegram/digest.py --period %i --token-file /etc/foundry-telegram/bot-token --chat-file /etc/foundry-telegram/chat-id
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
