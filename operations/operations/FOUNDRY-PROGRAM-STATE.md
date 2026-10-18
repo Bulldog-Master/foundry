@@ -90,6 +90,11 @@ Authoritative records:
 
 Bulldog-Surface WSL is the temporary Foundry controller/trust-root environment.
 
+`Foundry-Agent` is a separate contained WSL environment and is not a controller
+or signing trust root. Telegram is not a trust root, signing root or
+founder-authentication root. This coordination record does not relocate the
+controller or Caller signing trust root.
+
 The Caller authorization-signing private key belongs only on the trusted
 controller/admin environment.
 
@@ -170,12 +175,33 @@ Authoritative record:
 
 ### Agent Containment & Control
 
-Status: approved to resume.
+Status: candidate PRs #30, #32 and #40 are merged. Installation, commissioning
+and host-level verification of the candidate execution/approval path remain
+open (`EVIDENCE_MISSING`). Merge does not establish commissioning.
 
-Scope remains bounded to the approved Foundry execution/control environments.
+The [Foundry-Agent operational record](../foundry-agent/README.md) records the
+commissioned agent identity and containment boundaries, including Windows
+PAUSE/KILL retained on the control plane.
 
-The objective is to reduce manual operational friction while preserving human
-approval, trust-domain separation, bounded authority, and independent evidence.
+Reported operational facts (not independently verified by this record):
+Windows PAUSE/KILL, launcher, Telegram bridge and evidence-custody behaviour
+have been reported, including a bounded Telegram-approved task. This record
+does not establish their successful execution or independent evidence custody.
+The [execution preflight](../foundry-agent/execution-transport/README.md)
+documents its limited checks and does not verify those external facts.
+
+A [Telegram bounded-approval bridge](../foundry-agent/telegram-hq/README.md)
+exists as a merged, uninstalled, uncommissioned candidate. The merged Windows
+bridge bytes differ from the observed deployed bytes; prior commissioning
+claims do not establish the merged candidate's behaviour. Any use as an
+approval surface requires separate commissioning and authorization. Telegram
+alone does not establish a security-grade founder act.
+
+Corrected R6 candidate: `R6 NATIVE VALIDATION PASS`, eight Linux modes on a
+recorded disposable WSL2 clone. See the
+[R6 native-validation record](../foundry-agent/R6-NATIVE-VALIDATION-RECORD.md)
+for its exact candidate, environment and scope. This is not production or
+deployment authorization; `windows-client-death` is excluded.
 
 Contained agents must not gain standing authority over:
 
@@ -185,23 +211,26 @@ Contained agents must not gain standing authority over:
 - destructive/security-sensitive changes;
 - merges;
 - production promotion;
-- sealed truth.
+- governance/doctrine changes;
+- sealed truth;
+- founder overrides.
 
 ### Candidate Admission
 
-Status: next governance-layer work.
+Status: [Protocol v0.1](../candidate-admission/PROTOCOL-v0.1.md) (DRAFT,
+unapproved, untested; no standing authority) and the
+[CA-001 trial plan](../candidate-admission/CA-001-deterministic-rule-promotion.md)
+(PROPOSED) are merged as records. No checker implementation, trial execution,
+review or admission approval is established by those records.
 
-Candidate Admission should begin as a versioned operational protocol, not
-doctrine.
+The protocol remains operational rather than doctrine. Deterministic-rule
+promotion is the first intended proving case. The admission process must be
+proven before higher-impact candidates such as persistent memory systems,
+orchestration frameworks, alternate runtimes or similar external mechanisms
+are considered.
 
-The first intended admission case is deterministic-rule promotion.
-
-The admission process itself should be proven before higher-impact candidates
-such as persistent memory systems, orchestration frameworks, alternate
-runtimes, or similar external mechanisms are considered.
-
-Approval must remain version-bound to the component, configuration, runtime,
-environment, and evidence that were actually tested.
+Approval remains version-bound to the component, configuration, runtime,
+environment and evidence actually tested.
 
 ## Deferred work
 
@@ -224,10 +253,13 @@ evidence identifies a genuine trust-boundary failure.
 The current intended sequence is:
 
 1. Preserve Caller-1 and Sandbox-1 as frozen reference environments.
-2. Resume bounded Agent Containment & Control work.
-3. Formalize Candidate Admission Protocol v0.1.
-4. Use deterministic-rule promotion as the first admission test.
-5. Reconcile lessons from that test before expanding the admission process.
+2. Complete the outstanding host-level verification of the bounded execution
+   path, Windows PAUSE/KILL and independent evidence custody.
+3. Decide separately whether to install and commission the merged Telegram
+   bridge candidate as an approval surface, with explicit authorization.
+4. Execute CA-001 deterministic-rule promotion as the first admission trial
+   only when its implementation and execution are explicitly authorized.
+5. Reconcile lessons from CA-001 before expanding the admission process.
 6. Test shared-state isolation as a later candidate because of its direct
    relevance to evaluator independence.
 7. Test controlled persistent memory separately.
