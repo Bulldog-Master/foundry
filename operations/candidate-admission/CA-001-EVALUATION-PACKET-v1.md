@@ -17,7 +17,10 @@ Proposed repository path:
 
 `operations/candidate-admission/ca001_checker.py`
 
-Input is one decoded JSON object. The checker returns exactly one of:
+The checker exposes a pure function over one decoded object and reads only
+`requested_action` and `authorization`. A separate harness reads the JSONL
+file, passes each object, and compares the result with `expected_result`.
+The checker never reads `expected_result`. It returns exactly one of:
 
 - `eligible-for-human-review`
 - `stop`
@@ -32,13 +35,16 @@ Recognized requested actions are exactly:
 
 Eligibility is returned only when all of the following are true:
 
-1. `requested_action` is a scalar string in the recognized set;
+1. `requested_action` is a string (not a list, object, number, boolean or null)
+   in the recognized set;
 2. `authorization.kind == "explicit-action"`;
-3. `authorization.action` is a scalar string in the recognized set;
-4. `authorization.action == requested_action`;
-5. no extra requested action is present.
+3. `authorization.action` is a string (not a list, object, number, boolean or
+   null) in the recognized set;
+4. `authorization.action == requested_action`.
 
-Everything else returns `stop`.
+Everything else returns `stop`. A non-object case or authorization returns
+`stop`; the checker must not raise. Scope expansion represented by a composite
+`requested_action` is rejected by rule 1, not an additional policy predicate.
 
 The checker does not infer intent from prose and does not authenticate whether a
 real founder authorization occurred. Its output is advisory eligibility only.
@@ -68,13 +74,15 @@ The checker does not interpret `instruction_id`.
 The 12 cases and expected outcomes remain exactly those in
 `CA-001-deterministic-rule-promotion.md`.
 
-Malformed-action coverage uses a non-scalar or absent `requested_action`.
+Malformed-action coverage uses a non-string `requested_action`, so every
+fixture retains exactly the four fields above.
 The scope-expansion fixture uses a non-scalar composite request and must return
 `stop`.
 
 ## 3. Proposed implementation artifacts
 
-Candidate artifacts to be created only after exact packet authorization:
+Candidate artifacts to be created only after the separate Stage A implementation
+authorization described in §10:
 
 - `operations/candidate-admission/ca001_checker.py`
 - `operations/candidate-admission/fixtures/ca001-v1.jsonl`
@@ -102,11 +110,18 @@ The evaluation does not use Caller-1 or Sandbox-1 Production Baseline v1.
 
 ## 5. Controller and evidence custody
 
-The Bulldog-Surface Windows controller is the proposed evidence custodian.
+The Foundry controller environment is the proposed evidence custodian.
 
-Proposed evidence root:
+The proposed evidence location is an evidence root outside the agent's writable
+domain, designated by Bulldog at freeze. Its concrete path is OPEN.
 
-`C:\Users\John\Foundry-Control\candidate-admission\CA-001\v1\`
+This packet designates no trust root and does not relocate the controller or
+Caller signing trust root.
+
+This packet does not establish custody. Hashes detect change and do not
+establish custody or isolation. Capture mechanism, location and host-level
+verification are OPEN (`EVIDENCE_MISSING`). The `Foundry-Agent` environment is
+not a trust root.
 
 Before execution the controller must retain, hash, and freeze:
 
@@ -128,12 +143,12 @@ retained.
 
 ## 6. Exact commands and bounds
 
-After freeze, the controller invokes the unprivileged WSL identity directly;
-Codex/model execution is not part of the deterministic evaluation.
-
-For each pass:
-
-`timeout 60s python3 ca001_checker.py fixtures/ca001-v1.jsonl`
+After freeze and Stage B authorization, the controller invokes the unprivileged
+WSL identity directly; Codex/model execution is not part of the deterministic
+evaluation. The exact commands, harness entry point, comparison mechanism and
+invocation of `test_ca001_checker.py` are OPEN and must be declared before
+freeze. A checker-only invocation does not establish the expected-result
+comparisons. Each pass must retain the 60-second bound below.
 
 Run exactly two passes against the same frozen artifacts.
 
@@ -161,12 +176,14 @@ A valid evaluation requires all of:
 
 - 12/12 expected results on pass 1;
 - 12/12 expected results on pass 2;
-- byte-identical normalized outputs across both passes;
+- identical outputs across both passes;
 - zero false `eligible-for-human-review` outcomes;
 - no fixture/source drift;
 - no unauthorized side effects;
 - all required evidence retained under controller custody;
-- no integrity failure or limit breach.
+- no integrity failure or limit breach;
+- independent four-gate review completed with all conditions resolved before
+  an admission approval.
 
 Any integrity failure makes that attempt INVALID and blocks an admission
 disposition until a separately authorized valid attempt exists.
@@ -175,10 +192,11 @@ disposition until a separately authorized valid attempt exists.
 
 Proposed producer: Foundry-Agent implementation workstream.
 
-Proposed evaluation operator: Bulldog-Surface deterministic controller invoking
+Proposed evaluation operator: the Foundry controller environment invoking
 the frozen candidate as unprivileged `foundry-agent`.
 
-Proposed evidence custodian: Bulldog-Surface controller-side evidence root.
+Proposed evidence custodian: the Foundry controller environment, using the
+evidence root designated at freeze.
 
 Independent reviewer: **OPEN — must be named and independence-recorded before
 freeze/execution**. The reviewer cannot be the candidate producer and must be
@@ -189,19 +207,52 @@ A second account controlled by Bulldog is not an independent evaluator.
 
 ## 9. Current open freeze items
 
-This packet is not executable until all are resolved and Bulldog authorizes the
-exact tuple:
+Evaluation cannot begin until all pre-evaluation items are resolved and Bulldog
+authorizes Stage B for the exact frozen tuple:
 
 1. exact candidate/fixture/test source bytes and hashes after implementation;
-2. exact Python runtime version;
+2. exact Python runtime version and runtime identity/hash;
 3. named independent reviewer and independence record;
-4. exact controller evidence-capture script/hash;
-5. final packet/manifest hash.
+4. exact controller evidence-capture script/hash, concrete evidence path and
+   host-level custody/isolation verification;
+5. final packet and manifest hashes, recorded outside the packet to avoid
+   self-reference;
+6. output format, ordering, any normalization (none presumed), exit-code
+   contract including timeout outcomes, and comparison harness;
+7. exact per-pass commands, harness responsibility for comparing results with
+   `expected_result`, and invocation of `test_ca001_checker.py`;
+8. independent confirmation of fixture expected outcomes from the trial-plan
+   table, not from checker output, before freeze;
+9. independent four-gate review arrangements and acceptance requiring all
+   conditions closed before admission approval;
+10. case-to-fixture encoding for all 12 cases, without adding cases or policy
+    predicates;
+11. harness handling of unparseable, blank or duplicate-key JSONL lines and
+    unknown extra keys; no extra-key rejection predicate is presumed;
+12. enforcement and observation of the 1 MiB combined output bound per pass
+    and the prohibition on candidate writes outside the disposable work
+    directory.
+
+Items 1 and 5 are finalized after Stage A produces the draft artifacts. Items
+2–4 and all other pre-evaluation items must be resolved before Stage B. The
+post-evaluation review outcome in item 9 is not a prerequisite for Stage A or
+for running the authorized trial; its arrangements must be fixed before freeze.
 
 ## 10. Stop point
 
-Authorization of this packet may permit bounded implementation and/or
-evaluation only if Bulldog explicitly says so for the exact frozen tuple.
+Stage A: Bulldog separately authorizes bounded implementation, binding this
+packet's hash and the §1–§3 specification and paths. This permits producing the
+three proposed files; it does not permit evaluation.
+
+Stage B: after those artifacts exist and the pre-evaluation freeze items are
+resolved, Bulldog separately authorizes evaluation, binding the §9 tuple of
+artifact hashes, runtime, reviewer, capture mechanism and manifest. The final
+packet and manifest hashes are recorded outside the packet; no document must
+contain its own hash.
+
+Commit, push, PR creation/update and merge remain separate authorization
+boundaries throughout both stages. Merging this DRAFT grants neither Stage A
+nor Stage B authorization.
 
 Even a valid PASS does not authorize integration.
 
