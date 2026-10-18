@@ -99,6 +99,18 @@ Verified results:
 
 No changes were made by the commissioning preflight.
 
+## R6 native containment validation
+
+The corrected R6 candidate completed native validation on a recorded,
+network-isolated disposable WSL2 clone. All eight charter-authorized Linux
+modes received independent PASS decisions. The clone was unregistered after
+adjudication, while the original `Foundry-Agent` distribution remained
+preserved and stopped.
+
+See [`R6-NATIVE-VALIDATION-RECORD.md`](./R6-NATIVE-VALIDATION-RECORD.md) for
+the exact candidate and evidence identities, validated claim, environment and
+scope limitations. The result is not production or deployment authorization.
+
 ## Known limitation and future hardening
 
 A distro-level structural outbound egress allowlist has not yet been
