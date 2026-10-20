@@ -62,6 +62,29 @@ Hermes is external experimental tooling. Its normal shared state, including its 
 
 This record intentionally contains no secrets, credential contents, API keys, OAuth contents, token IDs, or authentication strings.
 
+## External workflow automation
+
+The founder reports that the Standalone lab's n8n workflow service and
+PostgreSQL database are working with the Hermes MCP integration following a
+successful execution. This is user-reported acceptance; the live deployment
+was not independently inspected when preparing this record.
+
+The deployment is frozen under change control as of 2026-10-20. Freeze means
+preserving the accepted configuration while services continue running.
+Changes require an explicit scope, approval, verification plan, and rollback
+plan before application.
+
+This operational record grants no standing Foundry gate, evaluation, scoring,
+adjudication, approval, merge, or production authority to n8n or Hermes.
+
+Exact software versions, container image digests, workflow definitions,
+endpoints, machine state, execution evidence, and rollback or restore evidence
+belong in the private execution and evidence record. Environment files,
+encryption keys, OAuth tokens, database volumes or backups, credential
+exports, SSH keys, session data, and protected Foundry material must remain
+outside this public repository. Any fact relied upon by a governed execution
+must be reverified for that execution.
+
 ## Evaluator-lab requirements
 
 Evaluator independence is governed by ADR-0002. The lab must preserve these operational boundaries:
