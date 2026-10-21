@@ -1,0 +1,72 @@
+{
+  "record_type": "CA001_CUSTODY_DESIGN_TEMPLATE_NOT_EXECUTABLE",
+  "status": "DRAFT_DESIGN_ONLY",
+  "design_version": "1",
+  "baseline": {
+    "source_commit": "08a7efd46ea0ede5dd067e6eefb64dbcd1ee249f",
+    "capture_sha256": "eead7c7bed06522f231d0630840c881993a8bbb04e17c3d19130fecaf18e7e7b",
+    "harness_sha256": "a229cc0852a8f708bbcac21daeb1637e91b26124080c444ddf68234051494108",
+    "evaluation_packet_sha256": "77031cfda7f240405ef6b211b16c7232c4336ad895b1468da9c5e8189e1362c4"
+  },
+  "proposed": {
+    "scope": "CA-001 only; non-production; manually operated; no standing service",
+    "platform": "Separate custodian-controlled Windows host with a dedicated WSL2 worker; no producer administration of host or hypervisor",
+    "reuse": "Prefer unchanged baseline capture and harness after authorized target verification; no unreviewed fallback or package transplant",
+    "worker_distribution_name": "Foundry-Agent",
+    "worker_user": "foundry-agent",
+    "worker_uid": 1000,
+    "worker_workdir": "/home/foundry-agent/work/candidate-admission/ca001-v1",
+    "pass_count": 2,
+    "seconds_per_pass": 60,
+    "retained_combined_output_bytes_per_pass": 1048576,
+    "automatic_retries": false
+  },
+  "required_controls": {
+    "custodian_controls_capture_and_storage": true,
+    "producer_has_no_host_or_hypervisor_admin_authority": true,
+    "no_producer_controlled_capture_hop": true,
+    "worker_has_no_controller_storage_access": true,
+    "all_attempts_preserved": true,
+    "original_preparation_failures_preserved": true,
+    "authority_is_prospective_not_retroactive": true,
+    "no_production_host_or_signing_trust_root_reuse": true
+  },
+  "deployment_bindings": {
+    "custodian_identity": null,
+    "host_identity": null,
+    "host_admin_authority_record_sha256": null,
+    "hypervisor_or_physical_access_record_sha256": null,
+    "controller_root": null,
+    "frozen_source_root": null,
+    "evidence_root": null,
+    "controller_pause_state_file": null,
+    "worker_environment_record_sha256": null,
+    "runtime_path": null,
+    "runtime_version": null,
+    "runtime_sha256": null,
+    "wsl_launcher_sha256": null,
+    "isolation_sha256": null,
+    "capture_sha256": null,
+    "harness_sha256": null
+  },
+  "acceptance_records": {
+    "custody_verification_record_sha256": null,
+    "environment_verification_record_sha256": null,
+    "reviewer_record_sha256": null,
+    "expected_results_confirmation_sha256": null,
+    "four_gate_arrangements_record_sha256": null,
+    "retention_record_sha256": null,
+    "final_manifest_sha256": null,
+    "external_freeze_hash_record": null
+  },
+  "authorizations": {
+    "design_accepted": false,
+    "installation_approved": false,
+    "custody_commissioned": false,
+    "final_freeze_accepted": false,
+    "Stage_B_authorized": false,
+    "integration_approved": false,
+    "standing_operation_activated": false
+  },
+  "limits": "Required controls describe the proposed design, not observed facts. All deployment and acceptance bindings remain unresolved. This template is not an input accepted by Capture-CA001StageB.ps1."
+}

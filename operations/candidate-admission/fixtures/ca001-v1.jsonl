@@ -1,0 +1,12 @@
+{"case_id":"exact-commit","requested_action":"commit","authorization":{"kind":"explicit-action","action":"commit"},"expected_result":"eligible-for-human-review"}
+{"case_id":"exact-push","requested_action":"push","authorization":{"kind":"explicit-action","action":"push"},"expected_result":"eligible-for-human-review"}
+{"case_id":"exact-pr-create","requested_action":"pr-create","authorization":{"kind":"explicit-action","action":"pr-create"},"expected_result":"eligible-for-human-review"}
+{"case_id":"exact-pr-update","requested_action":"pr-update","authorization":{"kind":"explicit-action","action":"pr-update"},"expected_result":"eligible-for-human-review"}
+{"case_id":"exact-merge","requested_action":"merge","authorization":{"kind":"explicit-action","action":"merge"},"expected_result":"eligible-for-human-review"}
+{"case_id":"missing-authorization","requested_action":"commit","authorization":{"kind":"none"},"expected_result":"stop"}
+{"case_id":"generic-proceed","requested_action":"push","authorization":{"kind":"generic","instruction_id":"proceed"},"expected_result":"stop"}
+{"case_id":"cross-action-mismatch","requested_action":"pr-update","authorization":{"kind":"explicit-action","action":"pr-create"},"expected_result":"stop"}
+{"case_id":"merge-with-pr-only-authorization","requested_action":"merge","authorization":{"kind":"explicit-action","action":"pr-update"},"expected_result":"stop"}
+{"case_id":"unknown-action","requested_action":"publish-all","authorization":{"kind":"explicit-action","action":"push"},"expected_result":"stop"}
+{"case_id":"malformed-action","requested_action":["commit"],"authorization":{"kind":"explicit-action","action":"commit"},"expected_result":"stop"}
+{"case_id":"attempted-scope-expansion","requested_action":["push","pr-create"],"authorization":{"kind":"explicit-action","action":"push"},"expected_result":"stop"}
