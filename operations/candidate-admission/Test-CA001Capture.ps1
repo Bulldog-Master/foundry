@@ -22,7 +22,8 @@ foreach($case in $cases) {
     [void][IO.Directory]::CreateDirectory($directory)
     $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($case.code))
     $result=Capture-CA001Process -Program $program -Arguments @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -InputBytes ([byte[]]::new(0)) -Directory $directory -Seconds $case.seconds -OutputLimit $case.limit
-    $ok=($result.status -ceq $case.status -and $result.retained_output_bytes -le $case.limit)
+    $ok=(@($result).Count -eq 1 -and $result -is [Collections.Specialized.OrderedDictionary] -and
+         $result.status -ceq $case.status -and $result.retained_output_bytes -le $case.limit)
     if($null -ne $case.exit) { $ok=$ok -and $result.exit_code -eq $case.exit }
     if($case.name -ceq 'raw-streams') {
         $ok=$ok -and [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes((Join-Path $directory 'stdout.bin'))) -ceq 'stand-in-out'
@@ -40,6 +41,24 @@ $rejected=$false
 try { [void](Resolve-CA001Directory ([IO.Path]::GetFullPath((Join-Path $EvidenceDirectory '..'))) $EvidenceDirectory) }
 catch { $rejected=$true }
 $results+= @{case='directory-traversal';passed=$rejected;observed_status='checked'}
+$serialized=Get-CA001Arguments @('-d','Foundry-Agent','--exec','/usr/bin/python3')
+$quoted=Get-CA001Arguments @('two words','')
+$results+= @{case='argument-serialization';passed=($serialized -ceq '-d Foundry-Agent --exec /usr/bin/python3' -and $quoted -ceq '"two words" ""');observed_status='checked'}
+$profile=@(Get-CA001IsolationArguments)
+$results+= @{case='isolation-profile';passed=($profile[0] -ceq '--unshare-all' -and $profile[-2] -ceq '--remount-ro' -and $profile[-1] -ceq '/' -and @($profile | Where-Object {$_ -ceq '--bind'}).Count -eq 1);observed_status='checked'}
+$directory=Join-Path $EvidenceDirectory 'child-wsl-env'
+[void][IO.Directory]::CreateDirectory($directory)
+$parentWSLEnv=$env:WSLENV
+try {
+    $env:WSLENV='CA001_INERT_ENV_ONLY/p'
+    $encoded=[Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('[Console]::Out.Write([string]::IsNullOrEmpty($env:WSLENV))'))
+    $result=Capture-CA001Process -Program $program -Arguments @('-NoProfile','-NonInteractive','-EncodedCommand',$encoded) -InputBytes ([byte[]]::new(0)) -Directory $directory -Seconds 5 -CleanWSLEnvironment
+    $ok=(@($result).Count -eq 1 -and $result -is [Collections.Specialized.OrderedDictionary] -and
+         $result.status -ceq 'completed' -and $result.exit_code -eq 0 -and $result.wsl_environment_cleared -eq $true -and
+         [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes((Join-Path $directory 'stdout.bin'))) -ceq 'True' -and
+         $env:WSLENV -ceq 'CA001_INERT_ENV_ONLY/p')
+    $results+= @{case='child-wsl-env';passed=$ok;observed_status=$result.status}
+} finally { $env:WSLENV=$parentWSLEnv }
 $report=@{record_type='capture-mechanics-only-not-ca001-evaluation';cases=$results;candidate_executed=$false;stage_a_tests_executed=$false}
 Write-CA001Json (Join-Path $EvidenceDirectory 'self-test.json') $report
 $report | ConvertTo-Json -Depth 5 -Compress

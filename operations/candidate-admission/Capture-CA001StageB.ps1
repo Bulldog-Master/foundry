@@ -36,12 +36,34 @@ function Write-CA001Json([string]$File, $Value) {
 }
 
 function Get-CA001Arguments($Items) {
-    ($Items | ForEach-Object { '"' + ($_ -replace '(\\*)"','$1$1\"' -replace '(\\+)$','$1$1') + '"' }) -join ' '
+    ($Items | ForEach-Object {
+        if($_ -ne '' -and $_ -notmatch '[\s"]') { $_ }
+        else { '"' + ($_ -replace '(\\*)"','$1$1\"' -replace '(\\+)$','$1$1') + '"' }
+    }) -join ' '
+}
+
+function Get-CA001IsolationArguments {
+    $work='/home/foundry-agent/work/candidate-admission/ca001-v1'
+    @('--unshare-all','--die-with-parent','--new-session',
+      '--ro-bind','/usr','/usr','--ro-bind','/lib','/lib','--ro-bind','/lib64','/lib64',
+      '--ro-bind','/etc/passwd','/etc/passwd','--ro-bind','/etc/group','/etc/group',
+      '--dir','/tmp','--proc','/proc','--dev','/dev','--bind',$work,$work,
+      '--chdir',$work,'--remount-ro','/')
+}
+
+function Get-CA001IsolationLauncher {
+@'
+import hashlib,os,pathlib,sys
+tool='/usr/bin/bwrap'
+assert hashlib.sha256(pathlib.Path(tool).read_bytes()).hexdigest()==sys.argv[1]
+os.execv(tool,[tool]+sys.argv[2:])
+'@
 }
 
 function Capture-CA001Process {
     param([string]$Program, [string[]]$Arguments, [byte[]]$InputBytes,
-          [string]$Directory, [double]$Seconds=60, [long]$OutputLimit=1048576)
+          [string]$Directory, [double]$Seconds=60, [long]$OutputLimit=1048576,
+          [switch]$CleanWSLEnvironment)
     $started=[DateTimeOffset]::UtcNow.ToString('o')
     $watch=[Diagnostics.Stopwatch]::StartNew()
     $process=[Diagnostics.Process]::new()
@@ -53,6 +75,9 @@ function Capture-CA001Process {
     $process.StartInfo.RedirectStandardInput=$true
     $process.StartInfo.RedirectStandardOutput=$true
     $process.StartInfo.RedirectStandardError=$true
+    # Prevent Windows path exports from being translated before Linux env -i.
+    # This changes only this child's environment, never the parent or WSL config.
+    if($CleanWSLEnvironment) { $process.StartInfo.EnvironmentVariables['WSLENV']='' }
     $streams=@(); $files=@(); $pending=@(); $buffers=@(); $counts=@(0L,0L)
     $status='launch-error'; $exitCode=$null; $observed=0L; $retained=0L; $launched=$false
     try {
@@ -70,7 +95,7 @@ function Capture-CA001Process {
         while($true) {
             if($watch.Elapsed.TotalSeconds -ge $Seconds) { $status='timeout'; break }
             if(-not $inputClosed -and $write.IsCompleted) {
-                $write.GetAwaiter().GetResult(); $process.StandardInput.Close(); $inputClosed=$true
+                $null=$write.GetAwaiter().GetResult(); $process.StandardInput.Close(); $inputClosed=$true
             }
             for($i=0;$i -lt 2;$i++) {
                 if($null -eq $pending[$i] -or -not $pending[$i].IsCompleted) { continue }
@@ -99,7 +124,8 @@ function Capture-CA001Process {
             ended_utc=[DateTimeOffset]::UtcNow.ToString('o');seconds=$watch.Elapsed.TotalSeconds;
             command=@($Program)+$Arguments;observed_output_bytes=$observed;retained_output_bytes=$retained;
             stdout_bytes=$counts[0];stderr_bytes=$counts[1];output_complete=($status -eq 'completed');
-            stdout_sha256=$null;stderr_sha256=$null;remote_cleanup_verified=$false}
+            stdout_sha256=$null;stderr_sha256=$null;remote_cleanup_verified=$false;
+            wsl_environment_cleared=[bool]$CleanWSLEnvironment}
         foreach($name in @('stdout','stderr')) {
             $file=Join-Path $Directory ($name+'.bin')
             if(Test-Path -LiteralPath $file) { $record[$name+'_sha256']=Get-CA001Hash $file }
@@ -152,6 +178,9 @@ $wsl=Join-Path $env:WINDIR 'System32\wsl.exe'
 if((Get-CA001Hash $PSCommandPath) -cne $manifest.capture_sha256 -or
    (Get-CA001Hash $wsl) -cne $manifest.wsl_sha256 -or
    $manifest.runtime.path -cnotmatch '^/usr/bin/python3\.[0-9]+$') { throw 'Capture/launcher/runtime drift.' }
+if($manifest.isolation.mode -cne 'readonly-root-bwrap-v1' -or
+   $manifest.isolation.path -cne '/usr/bin/bwrap' -or
+   $manifest.isolation.sha256 -cnotmatch '^[0-9a-f]{64}$') { throw 'Frozen isolation profile required.' }
 $manifest.frozen_source_root=Resolve-CA001Directory $manifest.frozen_source_root $controlRoot
 $names=@('PROTOCOL-v0.1.md','CA-001-deterministic-rule-promotion.md','CA-001-EVALUATION-PACKET-v1.md',
     'ca001_checker.py','fixtures/ca001-v1.jsonl','test_ca001_checker.py','ca001_harness.py')
@@ -185,6 +214,7 @@ exec(compile(source,filename,'exec'),{'__name__':'__main__','__file__':filename}
 $request=@{manifest=[Convert]::ToBase64String($raw);harness=[Convert]::ToBase64String($frozen['ca001_harness.py'])}
 $requestBytes=[Text.Encoding]::UTF8.GetBytes(($request | ConvertTo-Json -Compress))
 if($requestBytes.Length -gt 65536) { throw 'Bootstrap input exceeds bound.' }
+$isolationLauncher=Get-CA001IsolationLauncher
 $lock=[IO.File]::Open((Join-Path $manifest.evidence_root 'ca001.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
 $consumed=$null
 try {
@@ -213,8 +243,10 @@ try {
         $deadline=([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()/1000.0+60).ToString('R',[Globalization.CultureInfo]::InvariantCulture)
         $work='/home/foundry-agent/work/candidate-admission/ca001-v1'
         $arguments=@('-d','Foundry-Agent','-u','foundry-agent','--cd',$work,'--exec',
-            '/usr/bin/env','-i',$manifest.runtime.path,'-I','-B','-c',$bootstrap,$ManifestSha256,$deadline)
-        $result=Capture-CA001Process -Program $wsl -Arguments $arguments -InputBytes $requestBytes -Directory $pass
+            '/usr/bin/env','-i',$manifest.runtime.path,'-I','-B','-c',$isolationLauncher,
+            $manifest.isolation.sha256)+@(Get-CA001IsolationArguments)+
+            @($manifest.runtime.path,'-I','-B','-c',$bootstrap,$ManifestSha256,$deadline)
+        $result=Capture-CA001Process -Program $wsl -Arguments $arguments -InputBytes $requestBytes -Directory $pass -CleanWSLEnvironment
         $summary.passes+= $result
         if($result.status -cne 'completed' -or $result.exit_code -ne 0) { throw 'Pass failed; no retry or next pass.' }
         $reported=[Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes((Join-Path $pass 'stdout.bin'))) | ConvertFrom-Json
