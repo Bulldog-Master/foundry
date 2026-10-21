@@ -40,3 +40,12 @@ standing operation, controller authority or integration/configuration changes.
 Earlier verification statements above describe the original offline candidates,
 not a claim that these later private native-worker checks did not occur.
 Independent review remains separate; no gate outcome or activation is inferred.
+
+## Identity-guard follow-up
+
+The [guard results](IDENTITY-GUARD-RESULTS-2026-10-21.md) retain the later
+missing-identity failure and report the guard-integrated disposable client's
+bounded live test. `identity_guard.py` exports the exact tested synthetic helper;
+`test_identity_guard.py` adds offline regressions. The guard runs before the
+proposal callback and preserves model responses for existing validation.
+Nothing here installs a guard, launches work or activates standing operation.
