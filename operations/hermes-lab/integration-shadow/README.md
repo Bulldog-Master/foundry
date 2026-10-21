@@ -29,3 +29,23 @@ Model names and Hermes presence belong in private execution records under `opera
 Next after actual source verification: inspect Hermes documented CLI in its existing approved lab path, establish a disposable HERMES_HOME and independently observed read-only shadow planning task. Windows execution/PAUSE/KILL behaviour is reported, not verified here; the merged program-state record governs controller location and authority. No proposal becomes authority by prose alone. Candidate Admission and applicable activation gates apply before a standing operational role.
 
 Issue: #36. No installation/promotion implied.
+
+## Disposable native recovery follow-up
+
+The [2026-10-21 producer record](RECOVERY-RESULTS-2026-10-21.md) retains the
+original restart response-contract failure and the successful bounded follow-up.
+`recovery_contract.py` and `test_recovery_contract.py` export the clarified
+synthetic proposal policy and offline regression checks; they add no live calls,
+standing operation, controller authority or integration/configuration changes.
+Earlier verification statements above describe the original offline candidates,
+not a claim that these later private native-worker checks did not occur.
+Independent review remains separate; no gate outcome or activation is inferred.
+
+## Identity-guard follow-up
+
+The [guard results](IDENTITY-GUARD-RESULTS-2026-10-21.md) retain the later
+missing-identity failure and report the guard-integrated disposable client's
+bounded live test. `identity_guard.py` exports the exact tested synthetic helper;
+`test_identity_guard.py` adds offline regressions. The guard runs before the
+proposal callback and preserves model responses for existing validation.
+Nothing here installs a guard, launches work or activates standing operation.
