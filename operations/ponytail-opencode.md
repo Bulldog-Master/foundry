@@ -40,6 +40,25 @@ but duplicated logic instead of reusing the supplied helper. This instruction-
 following failure is retained, not replaced by a passing retry. Outputs require
 human review; setup completion is not a claim that every behavioral check passed.
 
+Follow-up native discovery checks confirmed all six Ponytail skills and six
+commands were registered, and all six skill bodies matched the pinned source.
+The initial empty lists were read before asynchronous plugin activation had
+completed. Waiting for activation resolved the discovery gap without changing
+the installation. Registration does not imply permission to load a skill;
+model-side loading remains denied by the existing profile.
+
+Analysis of the saved failing response confirmed that the helper was supplied
+and explicitly requested, and the response was not truncated. One targeted
+follow-up used the unchanged local launcher and model with an explicit
+helper-call constraint. It returned direct helper delegation and passed six
+boundary checks using structural analysis and bounded expression evaluation;
+model-generated code was not executed.
+
+That single success is a prompt-level mitigation example, not a general
+reliability fix or a controlled causal experiment. The original failure remains
+on record and human review is still required. No persistent prompt, profile,
+permission, or adapter change was made.
+
 Independent review remains with the separate review workflow. This producer
 record assigns no independent gate outcome or standing evaluator authority.
 
